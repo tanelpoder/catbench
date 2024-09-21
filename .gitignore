@@ -2,6 +2,9 @@
 # *.tsv
 *.swp
 
+# Mac nonsense
+.DS_Store
+
 # ignore dynamically created thumbnails
 app/static/thumbnails/
 
