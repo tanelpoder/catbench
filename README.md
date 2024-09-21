@@ -22,12 +22,13 @@ tar xf fgvc-aircraft-2013b.tar.gz
 cd ../app
 python server.py
 ```
+Go to `hostname:8000`:
+
+![Cats Dogs Planes](/landing/cat-dog-plane-embeddings-heatmap-annotated.png)
+![CatBench Normalized](/landing/catbench-normalized.png)
 
 
-
-
-
-
+YouTube video coming soon!
 
 ## Directory Structure
 
