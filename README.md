@@ -9,7 +9,7 @@ In this prerelease (v0.001) version I'm publishing a very simple embedding vecto
 
 ## Installation Steps
 
-I have tested this on RHEL9 and Ubuntu 24.04 so far:
+25000 cat/dog images are included in this repository. If you want to download aircraft images too, use the `wget` command below. I have tested this on RHEL9 and Ubuntu 24.04 so far:
 
 ```
 git clone https://github.com/tanelpoder/catbench
