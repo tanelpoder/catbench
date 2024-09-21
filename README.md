@@ -15,14 +15,16 @@ I have tested this on RHEL9 and Ubuntu 24.04 so far:
 git clone https://github.com/tanelpoder/catbench
 cd catbench
 pip install -r requirements.txt
+
 cd data
 cat README.md # if you want to use curl instead of wget for aircraft image download
 wget https://www.robots.ox.ac.uk/~vgg/data/fgvc-aircraft/archives/fgvc-aircraft-2013b.tar.gz
 tar xf fgvc-aircraft-2013b.tar.gz
+
 cd ../app
 python server.py
 ```
-Go to `hostname:8000`:
+Then go to `hostname:8000`:
 
 ![Cats Dogs Planes](/landing/cat-dog-plane-embeddings-heatmap-annotated.png)
 ![CatBench Normalized](/landing/catbench-normalized.png)
