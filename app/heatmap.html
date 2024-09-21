@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cat Benchmarking at Scale!</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Cat Benchmarking at Scale!</h1>
+    <a href='/'>Home</a>
+    <h2 id="datasetName"></h2>
+
+    <label>
+        <input type="checkbox" id="sortedCheckbox"> Sorted
+    </label>
+    <label>
+        <input type="checkbox" id="normalizedCheckbox" checked> Normalized
+    </label>
+    <br/><br/>
+
+    <canvas id="heatmapCanvas"></canvas>
+    <div id="tooltip" class="tooltip"></div>
+
+    <br/><br/><br/><br/><br/><br/><br/><br/>
+    <br/><br/><br/><br/><br/><br/><br/><br/>
+    <footer>
+    <p>Version 0.001</p>
+    <p>&copy; 2024 Tanel Poder <a href="https://bento.me/tanelpoder">@tanelpoder</a></p>
+    </footer>
+
+    <script src="heatmap.js"></script>
+</body>
+</html>
