@@ -7,6 +7,8 @@ In this prerelease (v0.001) version I'm publishing a very simple embedding vecto
 
 * https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps/
 
+![Cats Dogs Planes](/landing/cat-dog-plane-embeddings-heatmap-annotated.png)
+
 ## Installation Steps
 
 25000 cat/dog images are included in this repository. If you want to download aircraft images too, use the `wget` command below. I have tested this on RHEL9 and Ubuntu 24.04 so far:
@@ -26,7 +28,6 @@ python server.py
 ```
 Then go to `hostname:8000`:
 
-![Cats Dogs Planes](/landing/cat-dog-plane-embeddings-heatmap-annotated.png)
 ![CatBench Normalized](/landing/catbench-normalized.png)
 
 YouTube video coming soon!
