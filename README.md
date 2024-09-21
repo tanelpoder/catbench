@@ -5,7 +5,7 @@ In this prerelease (v0.001) version I'm publishing a very simple embedding vecto
 
 ## Announouncement blog entry
 
-* https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps/#visualizing-embedding-vectors-as-heatmaps
+* https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps/
 
 ## Installation Steps
 
@@ -22,12 +22,6 @@ tar xf fgvc-aircraft-2013b.tar.gz
 cd ../app
 python server.py
 ```
-
-
-
-
-
-
 
 ## Directory Structure
 
