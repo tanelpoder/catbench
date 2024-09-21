@@ -34,7 +34,7 @@ YouTube video coming soon!
 
 ## Directory Structure
 
-The app structure is deliberately very simple and flat. This is not a serious app, probably not efficient, secure or correct either. As I evolve it over time, I use this app for testing, measuring, learning more about high performance ML (and related) pipelines. I plan to include fancier stuff like RDMA and GPUDirect and various different vector-search capable databases into this experiment at some point.
+The app structure is deliberately very simple and flat. This is not a serious app, probably not efficient, secure or correct either. As I evolve it over time, I use this app for testing, measuring, learning more about high performance ML (and related) pipelines. I plan to include fancier stuff like Python GIL-avoidance, RDMA and GPUDirect and various different vector-search capable databases into this experiment at some point.
 
 ```
 $ tree | grep -v jpg
