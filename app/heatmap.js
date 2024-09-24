@@ -134,6 +134,20 @@ function drawHeatmap(data) {
         tooltipY = event.pageY - tooltipHeight - 10;
       }
 
+      // Adjust if tooltip goes beyond left edge
+      if (tooltipX < 0) {
+        tooltipX = event.pageX + 10;
+      }
+
+      // Adjust if tooltip goes beyond top edge
+      if (tooltipY < 0) {
+        tooltipY = event.pageY + 10;
+      }
+
+      // console.log(
+      //   `Tooltip Position - X: PageX: ${event.pageX}, PageY: ${event.pageY}, TooltipX: ${tooltipX}, TooltipY: ${tooltipY}, Height: ${tooltipHeight}`,
+      // );
+
       tooltip.style.left = `${tooltipX}px`;
       tooltip.style.top = `${tooltipY}px`;
     } else {
