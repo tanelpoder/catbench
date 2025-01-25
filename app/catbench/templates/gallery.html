@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .nav-link {
+            text-decoration: none;
+            color: #007bff;
+            padding: 5px 10px;
+        }
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 20px;
+        }
+        .image-item {
+            text-align: center;
+            width: 200px;
+        }
+        .image-item img {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            transition: transform 0.2s;
+        }
+        .image-item img:hover {
+            transform: scale(1.05);
+        }
+        .image-item p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .pagination a {
+            text-decoration: none;
+            color: #007bff;
+            padding: 5px 10px;
+        }
+        .pagination span {
+            margin: 0 10px;
+        }
+        .warning {
+            margin-bottom: 20px;
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('landing_page') }}" class="nav-link">← Back to Home</a>
+        <h1>{{ title }}</h1>
+        <div style="width: 80px;"><!-- Empty div for flex spacing --></div>
+    </div>
+
+    {% if mode == 'identify' %}
+    <div class="warning">
+        <em>The reverse lookup for "fraud detection" does not work in this version.
+            I will publish it in the next release and it will require about 500 GB of disk 
+            space, due to all the rotated image versions of the same pets and their respective embedding vectors.</em>
+    </div>
+    {% endif %}
+    
+    <div class="gallery">
+        {% for image in images %}
+        <div class="image-item">
+            <a href="{{ url_for('pet_details', animal=animal, mode=mode, image_name=image) }}">
+                <img src="{{ url_for('image_file', animal=animal, filename=image) }}" 
+                     alt="{{ image }}"
+                     loading="lazy">
+            </a>
+            <p>{{ image }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="pagination">
+        {% if page > 1 %}
+            {% if mode == 'crossspecies' %}
+                <a href="{{ url_for('catlike_dogs_gallery' if animal == 'cat' else 'doglike_cats_gallery', page=page-1) }}">Previous</a>
+            {% else %}
+                <a href="{{ url_for(mode + '_' + animal + '_gallery', page=page-1) }}">Previous</a>
+            {% endif %}
+        {% endif %}
+        
+        <span>Page {{ page }} of {{ total_pages }}</span>
+        
+        {% if page < total_pages %}
+            {% if mode == 'crossspecies' %}
+                <a href="{{ url_for('catlike_dogs_gallery' if animal == 'cat' else 'doglike_cats_gallery', page=page+1) }}">Next</a>
+            {% else %}
+                <a href="{{ url_for(mode + '_' + animal + '_gallery', page=page+1) }}">Next</a>
+            {% endif %}
+        {% endif %}
+    </div>
+</body>
+</html>

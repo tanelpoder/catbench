@@ -1,0 +1,44 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+label {
+    margin-right: 15px;
+}
+
+canvas {
+    border: 1px solid black;
+    /* Avoid browser blurring the rendered image */
+    image-rendering: optimizeSpeed;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -o-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: pixelated;
+    image-rendering: optimize-contrast;
+    -ms-interpolation-mode: nearest-neighbor;
+}
+
+.tooltip {
+    position: absolute;
+    background-color: white;
+    border: 1px solid black;
+    padding: 5px;
+    display: none;
+    width: 200px;
+    pointer-events: none; /* Prevent tooltip from capturing mouse events */
+}
+
+.tooltip img {
+    max-width: 100%;
+}
+
+@media (max-width: 600px) {
+    .tooltip {
+        width: 150px;
+    }
+}

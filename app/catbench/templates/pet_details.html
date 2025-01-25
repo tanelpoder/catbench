@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ animal|title }} Image: {{ main_image }}</title>
+    <!-- Add Prism CSS - using default light theme -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .nav-link {
+            text-decoration: none;
+            color: #007bff;
+            padding: 5px 10px;
+        }
+        .main-image-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .main-image {
+            max-width: 600px;
+            max-height: 600px;
+            object-fit: contain;
+            margin: 10px 0;
+        }
+        .image-label {
+            font-size: 1.2em;
+            color: #333;
+            margin: 10px 0;
+        }
+        .similar-images {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 20px;
+        }
+        .image-item {
+            text-align: center;
+            width: 200px;
+        }
+        .image-item img {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            transition: transform 0.2s;
+        }
+        .image-item img:hover {
+            transform: scale(1.05);
+        }
+        .image-item p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        .distance {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .cross-species-note {
+            background-color: #e3f2fd;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .query-monitoring {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .query-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .query-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .query-text {
+            position: relative;
+            margin: 10px 0;
+        }
+        .query-text pre {
+            margin: 0;
+            padding: 1em;
+            border-radius: 4px;
+            /*max-height: 400px;*/
+            overflow: auto;
+            background-color: #f5f7ff !important;  /* Light blue background for code */
+        }
+        /* Custom scrollbar for code blocks */
+        .query-text pre::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .query-text pre::-webkit-scrollbar-track {
+            background: #f0f0f0;
+        }
+        .query-text pre::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+        .query-text pre::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+        /* Customize Prism colors for EXPLAIN output */
+        .language-pgsql .comment {
+            color: #0066cc !important;  /* Blue for arrows */
+        }
+        .language-pgsql .keyword {
+            color: #d32f2f !important;  /* Red for keywords */
+        }
+        .language-pgsql .number {
+            color: #2e7d32 !important;  /* Green for numbers */
+        }
+
+        .purchase-analysis {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .purchase-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            background-color: white;
+        }
+        
+        .purchase-table th,
+        .purchase-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .purchase-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        
+        /* Right-align numeric columns */
+        .purchase-table th:nth-child(1),
+        .purchase-table th:nth-child(2),
+        .purchase-table th:nth-child(3),
+        .purchase-table td:nth-child(1),
+        .purchase-table td:nth-child(2),
+        .purchase-table td:nth-child(3) {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if mode == 'crossspecies' %}
+            <a href="{{ url_for('catlike_dogs_gallery' if animal == 'cat' else 'doglike_cats_gallery') }}" class="nav-link">
+                ← Back to Gallery
+            </a>
+        {% else %}
+            <a href="{{ url_for(mode + '_' + animal + '_gallery') }}" class="nav-link">
+                ← Back to Gallery
+            </a>
+        {% endif %}
+        <h1>{{ animal|title }} Image Analysis</h1>
+        <a href="{{ url_for('landing_page') }}" class="nav-link">Home</a>
+    </div>
+
+    <div class="main-image-container">
+        <div class="image-label">Source {{ animal|title }}:</div>
+        <img src="{{ url_for('image_file', animal=animal, filename=main_image) }}" 
+             alt="{{ main_image }}" class="main-image">
+    </div>
+    
+    {% if mode == 'crossspecies' %}
+    <div class="cross-species-note">
+        Showing the most similar {{ 'dogs' if animal == 'cat' else 'cats' }} to this {{ animal }}
+    </div>
+    {% endif %}
+    
+    <h2>
+        {% if mode == 'crossspecies' %}
+            Similar {{ 'Dogs' if animal == 'cat' else 'Cats' }}
+        {% else %}
+            Similar {{ animal|title }}s
+        {% endif %}
+    </h2>
+    
+    <div class="similar-images">
+        {% for image in similar_images %}
+        <div class="image-item">
+            {% if mode == 'crossspecies' %}
+                <img src="{{ url_for('image_file', 
+                                    animal='dog' if animal == 'cat' else 'cat', 
+                                    filename=image.filename) }}" 
+                     alt="{{ image.filename }}"
+                     loading="lazy">
+            {% else %}
+                {% if mode == 'identify' %}
+                    <a href="{{ url_for('reverse_lookup', 
+                                      animal=animal, 
+                                      source_image=main_image,
+                                      compare_image=image.filename) }}">
+                {% endif %}
+                <img src="{{ url_for('image_file', 
+                                    animal=animal, 
+                                    filename=image.filename) }}" 
+                     alt="{{ image.filename }}"
+                     loading="lazy">
+                {% if mode == 'identify' %}
+                    </a>
+                {% endif %}
+            {% endif %}
+            <p>{{ image.filename }}</p>
+            <p class="distance">Distance: {{ image.distance }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if mode == 'similar' and purchase_analysis %}
+        <div class="purchase-analysis">
+            <h2>Popular Items Among Similar Customers</h2>
+            <table class="purchase-table">
+                <thead>
+                    <tr>
+                        <th>Total Spent</th>
+                        <th>Purchase Count</th>
+                        <th>Customer Count</th>
+                        <th>Customer Type</th>
+                        <th>Item ID</th>
+                        <th>Item Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in purchase_analysis %}
+                    <tr>
+                        <td>{{ row[4] }}</td>
+                        <td>{{ row[3] }}</td>
+                        <td>{{ row[0] }}</td>
+                        <td>{{ row[5] }}</td>
+                        <td>{{ row[1] }}</td>
+                        <td>{{ row[2] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+    <div class="query-monitoring">
+        <h2>Query Performance</h2>
+        {% for plan in query_plans %}
+        <div class="query-section">
+            <div class="query-title">Query {{ loop.index }}:</div>
+            <div class="query-text">
+                <pre><code class="language-sql">{{ plan.query }}</code></pre>
+            </div>
+            <div class="query-title">Execution Plan:</div>
+            <div class="query-text">
+                <pre><code class="language-pgsql">{{ plan.plan }}</code></pre>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Add Prism JS and required components -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <!-- Custom language definition for PostgreSQL EXPLAIN output -->
+    <script>
+        Prism.languages.pgsql = {
+            'comment': {
+                pattern: /->.*/,
+                greedy: true
+            },
+            'keyword': /\b(?:Seq Scan|Index Scan|Bitmap Heap Scan|Bitmap Index Scan|Sort|Limit|Planning|Execution|Cost|Rows|Width|actual|loops|time|rows)\b/i,
+            'operator': /[-+\/*=<>]+/,
+            'number': /\b\d+\.?\d*(?:ms)?\b/,
+            'punctuation': /[()]/
+        };
+        
+        // Re-highlight when the page loads
+        document.addEventListener('DOMContentLoaded', (event) => {
+            Prism.highlightAll();
+        });
+    </script>
+</body>
+</html>
