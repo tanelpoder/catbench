@@ -15,11 +15,13 @@ In this prerelease (v0.2) version I'm publishing a very simple embedding vector 
 
 Download and set up CatBench:
 
+### Static CatVector app that doesn't require a database**
+
 ```
 git clone https://github.com/tanelpoder/catbench
 cd catbench
 
-pip install -r requirements.txt
+pip install -r requirements-catvector.txt
 
 # if you want airplane images
 cd data
@@ -27,58 +29,40 @@ wget https://www.robots.ox.ac.uk/~vgg/data/fgvc-aircraft/archives/fgvc-aircraft-
 tar xf fgvc-aircraft-2013b.tar.gz
 
 # run the app
-cd ../catvector
+cd ../app/catvector
 python catvector.py
 ```
 Then go to `hostname:8000`:
-
 
 ![CatBench Normalized](/landing/catbench-normalized.png)
 
 YouTube [videos are here](https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps-videos/).
 
-## Directory Structure
+### Interactive CatBench application that requires a Postgres database and loading data
 
-The app structure is deliberately very simple and flat. This is not a serious app, probably not efficient, secure or correct either. As I evolve it over time, I use this app for testing, measuring, learning more about high performance ML (and related) pipelines. I plan to include fancier stuff like Python GIL-avoidance, RDMA and GPUDirect and various different vector-search capable databases into this experiment at some point.
+Make sure that you have a Postgres database running and accessible and change the `psql` commands below to include your username/password if you are not using a default local connection:
 
 ```
-$ tree | grep -v jpg
-.
-├── app
-│   ├── catvector.py
-│   ├── heatmap.html
-│   ├── heatmap.js
-│   ├── index.html
-│   └── style.css
-├── data
-│   ├── PetImages
-│   │   ├── Cat
-│   │   │   └── Thumbs.db
-│   │   ├── CDLA-Permissive-2.0.pdf
-│   │   ├── Dog
-│   │   │   ├── dog_embeddings_500.tsv
-│   │   │   └── Thumbs.db
-│   │   ├── readme.txt
-│   │   └── SameCat
-│   └── README.md
-├── embeddings
-│   ├── cat_embeddings_small.tsv
-│   ├── dog_embeddings_small.tsv
-│   ├── plane_embeddings_small.tsv
-│   └── samecat_11696.tsv
-├── landing
-│   ├── catbench-normalized.png
-│   └── cat-dog-plane-embeddings-heatmap-annotated.png
-├── LICENSE
-├── README.md
-├── requirements-imageproc.txt
-├── requirements.txt
-└── scripts
-    ├── generate_embeddings.py
-    └── plotemb.py
-
-10 directories, 25383 files
+python scripts/generate_embeddings.py data/PetImages/Cat embeddings/cats.tsv
+python scripts/generate_embeddings.py data/PetImages/Dog embeddings/dogs.tsv
+psql -f scripts/create_catbench_tables.sql 
+psql -f scripts/create_tpcc_tables.sql 
+psql -f scripts/create_recommendation_schema.sql 
 ```
+
+Now go to the CatBench app directory:
+
+```
+cd app/catbench
+```
+
+Open the `catbench.py` file to change your Postgres user/pass settings if you are not using a default local connection. And then run the app:
+
+```
+python catbench.py
+```
+
+You can now go to `servername:5000` and browse around.
 
 The `data/PetImages` directory is the Kaggle Cat/Dog dataset (total 25k images) originally released by Microsoft:
 
