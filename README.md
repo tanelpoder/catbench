@@ -15,7 +15,7 @@ In this prerelease (v0.2) version I'm publishing a very simple embedding vector 
 
 Download and set up CatBench:
 
-### Static CatVector app that doesn't require a database**
+### Static CatVector app that doesn't require a database
 
 ```
 git clone https://github.com/tanelpoder/catbench
@@ -42,9 +42,17 @@ YouTube [videos are here](https://tanelpoder.com/posts/visualizing-embedding-vec
 
 Make sure that you have a Postgres database running and accessible and change the `psql` commands below to include your username/password if you are not using a default local connection:
 
+In the `catbench` repo root directory, run this to generate embedding vectors from the 25000 pet images (this uses PyTorch which automatically runs on CPUs if you don't have a GPU available).
+
 ```
+pip install -r requirements-catbench.txt
 python scripts/generate_embeddings.py data/PetImages/Cat embeddings/cats.tsv
 python scripts/generate_embeddings.py data/PetImages/Dog embeddings/dogs.tsv
+```
+
+Then load the vectors and other data into the database:
+
+```
 psql -f scripts/create_catbench_tables.sql 
 psql -f scripts/create_tpcc_tables.sql 
 psql -f scripts/create_recommendation_schema.sql 
