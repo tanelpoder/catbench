@@ -4,7 +4,7 @@ _Cat Benchmarking at Scale, finally!_
 There are two separate Python apps in this repo:
 
 * **CatVector** - a simple static embedding vector visualization app that shows a heatmap of individual vector/array values from various cat, dog and plane photos. Everything is precomputed and stored in text files, so you don't need PyTorch, GPUs or even a database
-* **CatBench** - a simple Python/Flask application using Postgres+pgvector similarity search queries (and joins to a regular TPCC schema) for playing around with vector similarity search based use cases
+* **CatBench** - a simple Python/Flask application using Postgres+pgvector similarity search queries (and joins to a regular TPCC schema) for playing with vector search use cases
 
 ## CatBench
 
