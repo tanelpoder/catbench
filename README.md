@@ -53,8 +53,9 @@ python scripts/generate_embeddings.py data/PetImages/Dog embeddings/dogs.tsv
 Then load the vectors and other data into the database:
 
 ```
-psql -f scripts/create_catbench_tables.sql 
+gunzip scripts/create_tpcc_tables.sql.gz
 psql -f scripts/create_tpcc_tables.sql 
+psql -f scripts/create_catbench_tables.sql 
 psql -f scripts/create_recommendation_schema.sql 
 ```
 
