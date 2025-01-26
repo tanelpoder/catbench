@@ -1,4 +1,4 @@
-# catbench
+# CatBench Vector Search Playground
 Cat Benchmarking at Scale, finally!
 
 There are two separate Python apps in this repo:
