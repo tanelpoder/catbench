@@ -20,20 +20,10 @@ A formal announcement of the CatBench (Postgres-based) similarity search app is 
 
 Here are a few screenshots of the similarity search and product recommendation engine (for cats!) in action:
 
-<div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-  <a href="/landing/rec-engine-1.webp">
-    <img src="/landing/rec-engine-1.webp" style="width: 150px; height: auto;"/>
-  </a>
-  <a href="/landing/rec-engine-2.webp">
-    <img src="/landing/rec-engine-3.webp" style="width: 150px; height: auto;"/>
-  </a>
-  <a href="/landing/rec-engine-3.webp">
-    <img src="/landing/rec-engine-3.webp" style="width: 150px; height: auto;"/>
-  </a>
-  <a href="/landing/rec-engine-4.webp">
-    <img src="/landing/rec-engine-4.webp" style="width: 150px; height: auto;"/>
-  </a>
-</div>
+![Cat similarity search output](/landing/rec-engine-1.webp)
+![Cat similarity search query](/landing/rec-engine-2.webp)
+![Cat recommendation engine output](/landing/rec-engine-3.webp)
+![Cat recommendation engine query plan](/landing/rec-engine-4.webp)
 
 ## Installation Steps
 
