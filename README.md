@@ -32,7 +32,7 @@ The static embedding vector visualization blog entry and demo videos are here:
 
 Download and set up CatBench:
 
-## Static CatVector app that doesn't require a database
+### Static CatVector app that doesn't require a database
 
 ```
 git clone https://github.com/tanelpoder/catbench
@@ -53,7 +53,7 @@ Then go to `hostname:8000`:
 
 ![CatBench Normalized](/landing/catbench-normalized.png)
 
-## Interactive CatBench application that requires a Postgres database and loading data
+### Interactive CatBench application that requires a Postgres database and loading data
 
 Make sure that you have a Postgres database running and accessible and change the `psql` commands below to include your username/password if you are not using a default local connection:
 
