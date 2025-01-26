@@ -19,9 +19,10 @@ Here are a few screenshots of the similarity search and recommendation engine ap
 
 ## CatVector 
 
-The static embedding vector visualization blog entry is here:
+The static embedding vector visualization blog entry and demo videos are here:
 
 * https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps/
+* https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps-videos/
 
 ![Cats Dogs Planes](/landing/cat-dog-plane-embeddings-heatmap-annotated.webp)
 
@@ -51,8 +52,6 @@ python catvector.py
 Then go to `hostname:8000`:
 
 ![CatBench Normalized](/landing/catbench-normalized.png)
-
-The static CatVector app [demo videos are here](https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps-videos/).
 
 ## Interactive CatBench application that requires a Postgres database and loading data
 
