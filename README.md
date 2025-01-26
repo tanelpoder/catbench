@@ -8,7 +8,7 @@ There are two separate Python apps in this repo:
 
 ## CatBench
 
-You can already test this app out yourself, installation steps are below.
+You can test this app out yourself, installation steps are below.
 
 Here are a few screenshots of the similarity search and recommendation engine app (for cats!) in action:
 
