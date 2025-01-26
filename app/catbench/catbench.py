@@ -10,18 +10,17 @@ from flask import Flask, render_template, request, send_from_directory, abort
 app = Flask(__name__)
 
 # Configuration
-#IMAGE_DIR = Path(__file__).resolve().parent.parent.parent / 'data' / 'PetImages'
+PG_DB   = None    # defaults to your OS username, or replace with your dbname
+PG_USER = None    # defaults to your OS username, or replace with your username
+PG_PASS = None    # passwordless login when using local connection, or set to your password
+PG_HOST = "localhost" # change to your DB instance's hostname if using a remote DB
+PG_PORT = "5432"
+
 APP_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 IMAGE_DIR  = os.path.join(APP_DIR, 'data', 'PetImages')
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 ITEMS_PER_PAGE = 15
-
-PG_DB   = "tanel"
-PG_USER = "tanel"
-PG_PASS = "tanel"
-PG_HOST = "localhost"
-PG_PORT = "5432"
 
 # Database connection pool
 db_pool = psycopg2.pool.SimpleConnectionPool(
