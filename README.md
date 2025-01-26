@@ -1,5 +1,5 @@
 # CatBench Vector Search Playground
-Cat Benchmarking at Scale, finally!
+_Cat Benchmarking at Scale, finally!_
 
 There are two separate Python apps in this repo:
 
@@ -8,7 +8,7 @@ There are two separate Python apps in this repo:
 
 ## CatBench
 
-A formal announcement of the CatBench (Postgres-based) similarity search app is coming soon! You can already test it out yourself, installation steps are below.
+You can already test this app out yourself, installation steps are below.
 
 Here are a few screenshots of the similarity search and recommendation engine app (for cats!) in action:
 
