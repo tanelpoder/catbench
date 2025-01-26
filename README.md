@@ -41,7 +41,7 @@ Then go to `hostname:8000`:
 
 ![CatBench Normalized](/landing/catbench-normalized.png)
 
-YouTube [videos are here](https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps-videos/).
+The static CatVector app [demo videos are here](https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps-videos/).
 
 ## Interactive CatBench application that requires a Postgres database and loading data
 
