@@ -10,7 +10,7 @@ There are two separate Python apps in this repo:
 
 * https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps/
 
-![Cats Dogs Planes](/landing/cat-dog-plane-embeddings-heatmap-annotated.png)
+![Cats Dogs Planes](/landing/cat-dog-plane-embeddings-heatmap-annotated.webp)
 
 A formal CatBench (Postgres-based) demo app announcement is coming soon!
 
