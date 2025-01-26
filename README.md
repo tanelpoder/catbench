@@ -87,7 +87,9 @@ Open the `catbench.py` file to change your Postgres user/pass settings if you ar
 python catbench.py
 ```
 
-You can now go to `servername:5000` and browse around.
+You can now go to `servername:5000` and browse around:
+
+![CatBench app frontpage](/landing/catbench-frontpage.webp)
 
 The `data/PetImages` directory is the Kaggle Cat/Dog dataset (total 25k images) originally released by Microsoft:
 
