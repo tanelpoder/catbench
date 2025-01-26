@@ -55,7 +55,7 @@ Then go to `hostname:8000`:
 
 ### Interactive CatBench application that requires a Postgres database and loading data
 
-Make sure that you have a Postgres database running and accessible and change the `psql` commands below to include your username/password if you are not using a default local connection:
+Make sure that you have a Postgres database (with pgvector extension) running and accessible and change the `psql` commands below to include your username/password if you are not using a default local connection:
 
 In the `catbench` repo root directory, run this to generate embedding vectors from the 25000 pet images (this uses PyTorch which automatically runs on CPUs if you don't have a GPU available).
 
