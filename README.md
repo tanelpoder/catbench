@@ -1,13 +1,18 @@
 # catbench
 Cat Benchmarking at Scale, finally!
 
-In this prerelease (v0.2) version I'm publishing a very simple embedding vector visualization app that plots out embeddings computed from various cat, dog and plane photos as a heatmap. Everything is precomputed and stored in text files, so you don't need PyTorch, GPUs or even a database.
+There are two separate Python apps in this repo:
 
-## Announouncement blog entry
+* **CatVector** - a simple static embedding vector visualization app that shows a heatmap of individual vector/array values from various cat, dog and plane photos. Everything is precomputed and stored in text files, so you don't need PyTorch, GPUs or even a database
+* **CatBench** - a simple Python/Flask application using Postgres+pgvector similarity search queries (and joins to a regular TPCC schema) for playing around with vector similarity search based use cases
+
+## CatVector announouncement blog entry
 
 * https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps/
 
 ![Cats Dogs Planes](/landing/cat-dog-plane-embeddings-heatmap-annotated.png)
+
+A formal CatBench (Postgres-based) demo app announcement is coming soon!
 
 ## Installation Steps
 
@@ -15,7 +20,7 @@ In this prerelease (v0.2) version I'm publishing a very simple embedding vector 
 
 Download and set up CatBench:
 
-### Static CatVector app that doesn't require a database
+## Static CatVector app that doesn't require a database
 
 ```
 git clone https://github.com/tanelpoder/catbench
@@ -38,7 +43,7 @@ Then go to `hostname:8000`:
 
 YouTube [videos are here](https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps-videos/).
 
-### Interactive CatBench application that requires a Postgres database and loading data
+## Interactive CatBench application that requires a Postgres database and loading data
 
 Make sure that you have a Postgres database running and accessible and change the `psql` commands below to include your username/password if you are not using a default local connection:
 
