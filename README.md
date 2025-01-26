@@ -18,7 +18,7 @@ The static embedding vector heatmap visualization launch blog entry is here:
 
 A formal announcement of the CatBench (Postgres-based) similarity search app is coming soon! You can already test it out yourself, installation steps are below.
 
-Here are a few screenshots of the similarity search and product recommendation engine (for cats!) in action:
+Here are a few screenshots of the similarity search and recommendation engine app (for cats!) in action:
 
 ![Cat similarity search output](/landing/rec-engine-1.webp)
 ![Cat similarity search query](/landing/rec-engine-2.webp)
