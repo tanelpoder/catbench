@@ -6,14 +6,6 @@ There are two separate Python apps in this repo:
 * **CatVector** - a simple static embedding vector visualization app that shows a heatmap of individual vector/array values from various cat, dog and plane photos. Everything is precomputed and stored in text files, so you don't need PyTorch, GPUs or even a database
 * **CatBench** - a simple Python/Flask application using Postgres+pgvector similarity search queries (and joins to a regular TPCC schema) for playing around with vector similarity search based use cases
 
-## CatVector 
-
-The static embedding vector heatmap visualization launch blog entry is here:
-
-* https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps/
-
-![Cats Dogs Planes](/landing/cat-dog-plane-embeddings-heatmap-annotated.webp)
-
 ## CatBench
 
 A formal announcement of the CatBench (Postgres-based) similarity search app is coming soon! You can already test it out yourself, installation steps are below.
@@ -24,6 +16,14 @@ Here are a few screenshots of the similarity search and recommendation engine ap
 ![Cat similarity search query](/landing/rec-engine-2.webp)
 ![Cat recommendation engine output](/landing/rec-engine-3.webp)
 ![Cat recommendation engine query plan](/landing/rec-engine-4.webp)
+
+## CatVector 
+
+The static embedding vector visualization blog entry is here:
+
+* https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps/
+
+![Cats Dogs Planes](/landing/cat-dog-plane-embeddings-heatmap-annotated.webp)
 
 ## Installation Steps
 
