@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CatBench - Performance Monitoring</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .nav-link {
+            text-decoration: none;
+            color: #007bff;
+            padding: 5px 10px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .chart-container {
+            margin-bottom: 40px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .chart-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .chart-box {
+            flex: 1;
+            min-width: 300px;
+            height: 300px;
+            position: relative;
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .chart-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        tr:hover {
+            background-color: #f0f0f0;
+        }
+        .numeric {
+            text-align: right;
+        }
+        .refresh-status {
+            color: #777;
+            font-style: italic;
+            margin-left: 10px;
+        }
+        .sql-query {
+            max-height: 80px;
+            overflow: auto;
+            font-family: monospace;
+            white-space: nowrap;
+            font-size: 0.9em;
+            color: #555;
+            background-color: #f9f9f9;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        /* Style for debug controls */
+        .debug-control {
+            margin-left: 20px;
+            padding: 3px 8px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        /* Add hover effect to refresh button */
+        #refresh-now {
+            cursor: pointer;
+            padding: 5px 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        #refresh-now:hover {
+            background-color: #e0e0e0;
+        }
+        
+        /* Make sure all chart canvases have proper sizing */
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('landing_page') }}" class="nav-link">← Back to Home</a>
+        <h1>PostgreSQL Performance Monitoring</h1>
+        <div style="width: 80px;"><!-- Empty div for flex spacing --></div>
+    </div>
+
+    <div class="controls">
+        <div>
+            <label for="refresh-interval">Refresh Interval:</label>
+            <select id="refresh-interval">
+                <option value="5">5 seconds</option>
+                <option value="10">10 seconds</option>
+                <option value="30">30 seconds</option>
+                <option value="60">60 seconds</option>
+            </select>
+            <button id="refresh-now">Refresh Now</button>
+            <span class="refresh-status" id="last-refreshed">Last refreshed: Never</span>
+        </div>
+        <div>
+            <label for="time-range">Time Range:</label>
+            <select id="time-range">
+                <option value="2">Last 2 minutes</option>
+                <option value="5" selected>Last 5 minutes</option>
+                <option value="10">Last 10 minutes</option>
+            </select>
+            <label class="debug-control">
+                <input type="checkbox" id="debug-checkbox"> Debug Mode
+            </label>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <h2>Database Activity Overview</h2>
+        <div class="chart-row">
+            <div class="chart-box">
+                <div class="chart-title">Query Execution Rate</div>
+                <canvas id="query-rate-chart"></canvas>
+            </div>
+            <div class="chart-box">
+                <div class="chart-title">Buffer Activity</div>
+                <canvas id="buffer-chart"></canvas>
+            </div>
+        </div>
+        <div class="chart-row">
+            <div class="chart-box">
+                <div class="chart-title">I/O Activity</div>
+                <canvas id="io-chart"></canvas>
+            </div>
+            <div class="chart-box">
+                <div class="chart-title">Connections</div>
+                <canvas id="connections-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <h2>Top Queries by Execution Time</h2>
+        <table id="top-queries-table">
+            <thead>
+                <tr>
+                    <th>Query</th>
+                    <th class="numeric">Calls/sec</th>
+                    <th class="numeric">Avg Time (ms)</th>
+                    <th class="numeric">Rows/Call</th>
+                    <th class="numeric">Shared Blocks Hit/sec</th>
+                    <th class="numeric">Shared Blocks Read/sec</th>
+                    <th class="numeric">Temp Blocks Read/sec</th>
+                    <th class="numeric">Temp Blocks Written/sec</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Debug mode flag
+        let debugMode = false;
+
+        function debugLog(...args) {
+            if (debugMode) {
+                console.log(`[${new Date().toISOString()}]`, ...args);
+            }
+        }
+        
+        // Chart objects
+        let queryRateChart, bufferChart, ioChart, connectionsChart;
+        
+        // Reference to interval timer
+        let refreshTimer = null;
+        
+        // Function to limit array length (for sliding window)
+        function limitArrayLength(arr, maxLength) {
+            if (arr.length > maxLength) {
+                return arr.slice(arr.length - maxLength);
+            }
+            return arr;
+        }
+        
+        // Initialize charts
+        function initCharts() {
+            debugLog("Initializing charts");
+            
+            // Shared chart options to improve performance
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false, // Disable animations for better performance
+                elements: {
+                    line: {
+                        tension: 0 // Use straight lines (faster rendering)
+                    },
+                    point: {
+                        radius: 0 // Hide points for better performance
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false // Hide grid for better performance
+                        },
+                        ticks: {
+                            maxTicksLimit: 10, // Limit the number of ticks on the x-axis
+                            maxRotation: 0 // Don't rotate labels
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            maxTicksLimit: 5 // Limit the number of ticks on the y-axis
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    intersect: false
+                }
+            };
+        
+            // Query rate chart
+            const queryRateCtx = document.getElementById('query-rate-chart').getContext('2d');
+            queryRateChart = new Chart(queryRateCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Queries/sec',
+                        data: [],
+                        borderColor: '#4285F4',
+                        backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: commonOptions
+            });
+            
+            // Buffer chart
+            const bufferCtx = document.getElementById('buffer-chart').getContext('2d');
+            bufferChart = new Chart(bufferCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Buffer Hits/sec',
+                            data: [],
+                            borderColor: '#0F9D58',
+                            backgroundColor: 'rgba(15, 157, 88, 0.1)',
+                            fill: true
+                        },
+                        {
+                            label: 'Buffer Reads/sec',
+                            data: [],
+                            borderColor: '#DB4437',
+                            backgroundColor: 'rgba(219, 68, 55, 0.1)',
+                            fill: true
+                        }
+                    ]
+                },
+                options: commonOptions
+            });
+            
+            // I/O chart
+            const ioCtx = document.getElementById('io-chart').getContext('2d');
+            ioChart = new Chart(ioCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Index Read/sec',
+                            data: [],
+                            borderColor: '#F4B400',
+                            backgroundColor: 'rgba(244, 180, 0, 0.1)',
+                            fill: true
+                        },
+                        {
+                            label: 'Heap Read/sec',
+                            data: [],
+                            borderColor: '#0F9D58',
+                            backgroundColor: 'rgba(15, 157, 88, 0.1)',
+                            fill: true
+                        }
+                    ]
+                },
+                options: commonOptions
+            });
+            
+            // Connections chart
+            const connectionsCtx = document.getElementById('connections-chart').getContext('2d');
+            connectionsChart = new Chart(connectionsCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Active Connections',
+                        data: [],
+                        borderColor: '#DB4437',
+                        backgroundColor: 'rgba(219, 68, 55, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: commonOptions
+            });
+        }
+        
+        // Function to update the query table
+        function updateQueryTable(data) {
+            const tableBody = document.getElementById('top-queries-table').querySelector('tbody');
+            tableBody.innerHTML = '';
+            
+            if (!data || data.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="8" style="text-align: center;">No query data available</td>';
+                tableBody.appendChild(row);
+                return;
+            }
+            
+            const latestData = data[data.length - 1];
+            if (!latestData || !latestData.queries || !Array.isArray(latestData.queries) || latestData.queries.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="8" style="text-align: center;">No query data available</td>';
+                tableBody.appendChild(row);
+                return;
+            }
+            
+            latestData.queries.forEach(query => {
+                if (!query) return;
+                
+                const row = document.createElement('tr');
+                
+                // Truncate query text if too long
+                let queryText = query.query || 'Unknown Query';
+                if (queryText.length > 100) {
+                    queryText = queryText.substring(0, 97) + '...';
+                }
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="sql-query" title="${(query.query || '').replace(/"/g, '&quot;')}">${queryText}</div>
+                    </td>
+                    <td class="numeric">${typeof query.calls_per_sec === 'number' ? query.calls_per_sec.toFixed(2) : 'N/A'}</td>
+                    <td class="numeric">${typeof query.avg_exec_time_delta === 'number' ? query.avg_exec_time_delta.toFixed(2) : 'N/A'}</td>
+                    <td class="numeric">${typeof query.rows === 'number' ? query.rows.toLocaleString() : 'N/A'}</td>
+                    <td class="numeric">${typeof query.shared_blks_hit_per_sec === 'number' ? query.shared_blks_hit_per_sec.toFixed(2) : 'N/A'}</td>
+                    <td class="numeric">${typeof query.shared_blks_read_per_sec === 'number' ? query.shared_blks_read_per_sec.toFixed(2) : 'N/A'}</td>
+                    <td class="numeric">${typeof query.temp_blks_read_per_sec === 'number' ? query.temp_blks_read_per_sec.toFixed(2) : 'N/A'}</td>
+                    <td class="numeric">${typeof query.temp_blks_written_per_sec === 'number' ? query.temp_blks_written_per_sec.toFixed(2) : 'N/A'}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Function to update the charts
+        function updateCharts(data) {
+            debugLog("Updating charts with new data");
+            const timeRange = parseInt(document.getElementById('time-range').value, 10);
+            // Calculate max points to show based on time range
+            // Assuming 5-second refresh as base (60 points = 5 minutes)
+            const maxPoints = timeRange * 12; // timeRange in minutes * (60 seconds / 5 second intervals)
+            
+            // Update query rate chart
+            if (data.top_queries && data.top_queries.length > 0) {
+                debugLog(`Processing ${data.top_queries.length} query data points`);
+                let queryRateData = data.top_queries.map(sample => {
+                    let totalRate = 0;
+                    if (sample.queries && Array.isArray(sample.queries)) {
+                        totalRate = sample.queries.reduce((sum, q) => {
+                            return sum + (q.calls_per_sec || 0);
+                        }, 0);
+                    }
+                    return {
+                        timestamp: sample.timestamp || '',
+                        rate: totalRate
+                    };
+                });
+                
+                // Limit to maxPoints for sliding window effect
+                queryRateData = limitArrayLength(queryRateData, maxPoints);
+                
+                if (queryRateData.length > 0) {
+                    queryRateChart.data.labels = queryRateData.map(d => d.timestamp);
+                    queryRateChart.data.datasets[0].data = queryRateData.map(d => d.rate);
+                    queryRateChart.update('none'); // Use 'none' mode for better performance
+                }
+            }
+            
+            // Update buffer chart
+            if (data.system_metrics && data.system_metrics.io && Array.isArray(data.system_metrics.io)) {
+                debugLog(`Processing ${data.system_metrics.io.length} IO data points`);
+                // Limit to maxPoints for sliding window effect
+                let ioMetrics = limitArrayLength(data.system_metrics.io, maxPoints);
+                
+                if (ioMetrics.length > 0) {
+                    const bufferHitRates = ioMetrics.map(d => {
+                        const heapHit = typeof d.heap_hit_per_sec === 'number' ? d.heap_hit_per_sec : 0;
+                        const idxHit = typeof d.idx_hit_per_sec === 'number' ? d.idx_hit_per_sec : 0;
+                        return heapHit + idxHit;
+                    });
+                    
+                    const bufferReadRates = ioMetrics.map(d => {
+                        const heapRead = typeof d.heap_read_per_sec === 'number' ? d.heap_read_per_sec : 0;
+                        const idxRead = typeof d.idx_read_per_sec === 'number' ? d.idx_read_per_sec : 0;
+                        return heapRead + idxRead;
+                    });
+                    
+                    const timestamps = ioMetrics.map(d => d.timestamp || '');
+                    
+                    bufferChart.data.labels = timestamps;
+                    bufferChart.data.datasets[0].data = bufferHitRates;
+                    bufferChart.data.datasets[1].data = bufferReadRates;
+                    bufferChart.update('none');
+                    
+                    // Update I/O chart with the same timestamps
+                    ioChart.data.labels = timestamps;
+                    ioChart.data.datasets[0].data = ioMetrics.map(d => 
+                        typeof d.idx_read_per_sec === 'number' ? d.idx_read_per_sec : 0
+                    );
+                    ioChart.data.datasets[1].data = ioMetrics.map(d => 
+                        typeof d.heap_read_per_sec === 'number' ? d.heap_read_per_sec : 0
+                    );
+                    ioChart.update('none');
+                }
+            }
+            
+            // Update connections chart
+            if (data.system_metrics && data.system_metrics.connections && Array.isArray(data.system_metrics.connections)) {
+                debugLog(`Processing ${data.system_metrics.connections.length} connection data points`);
+                // Limit to maxPoints for sliding window effect
+                let connectionMetrics = limitArrayLength(data.system_metrics.connections, maxPoints);
+                
+                if (connectionMetrics.length > 0) {
+                    connectionsChart.data.labels = connectionMetrics.map(d => d.timestamp || '');
+                    connectionsChart.data.datasets[0].data = connectionMetrics.map(d => 
+                        typeof d.value === 'number' ? d.value : 0
+                    );
+                    connectionsChart.update('none');
+                }
+            }
+        }
+        
+        // Function to refresh data
+        function refreshData() {
+            debugLog("Refreshing data");
+            const refreshStartTime = performance.now();
+            const interval = document.getElementById('refresh-interval').value;
+            
+            fetch(`/api/monitoring_data?interval=${interval}`)
+                .then(response => response.json())
+                .then(data => {
+                    const processingStartTime = performance.now();
+                    updateQueryTable(data.top_queries);
+                    updateCharts(data);
+                    
+                    // Update last refreshed timestamp
+                    const now = new Date();
+                    const timeString = now.toLocaleTimeString();
+                    document.getElementById('last-refreshed').textContent = `Last refreshed: ${timeString}`;
+                    
+                    const endTime = performance.now();
+                    debugLog(`Fetch time: ${(processingStartTime - refreshStartTime).toFixed(2)}ms, Processing time: ${(endTime - processingStartTime).toFixed(2)}ms`);
+                })
+                .catch(error => {
+                    console.error('Error fetching monitoring data:', error);
+                    debugLog('Error fetching monitoring data:', error);
+                });
+        }
+        
+        // Function to set up the refresh interval
+        function setupRefreshInterval() {
+            debugLog("Setting up refresh interval");
+            
+            // Clear any existing interval
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+            }
+            
+            const interval = parseInt(document.getElementById('refresh-interval').value) * 1000;
+            refreshTimer = setInterval(() => {
+                debugLog(`Timer triggered refresh (interval: ${interval}ms)`);
+                refreshData();
+            }, interval);
+            refreshData(); // Immediate refresh
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize charts
+            initCharts();
+            
+            // Set up refresh interval
+            setupRefreshInterval();
+            
+            // Handle refresh interval change
+            document.getElementById('refresh-interval').addEventListener('change', setupRefreshInterval);
+            
+            // Handle manual refresh
+            document.getElementById('refresh-now').addEventListener('click', refreshData);
+            
+            // Handle time range change
+            document.getElementById('time-range').addEventListener('change', refreshData);
+            
+            // Handle debug checkbox
+            document.getElementById('debug-checkbox').addEventListener('change', function() {
+                debugMode = this.checked;
+                debugLog("Debug mode enabled");
+                
+                // Output initial diagnostic information
+                if (debugMode) {
+                    console.log("Browser info:", navigator.userAgent);
+                    console.log("Chart.js version:", Chart.version);
+                    console.log("Current refresh interval:", document.getElementById('refresh-interval').value);
+                    console.log("Current time range:", document.getElementById('time-range').value);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
