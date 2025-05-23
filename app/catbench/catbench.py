@@ -13,10 +13,10 @@ from flask import Flask, render_template, request, send_from_directory, abort, j
 app = Flask(__name__)
 
 # Configuration
-PG_DB   = "tanel"
-PG_USER = "tanel"
-PG_PASS = "tanel"
-PG_HOST = "localhost"
+PG_DB   = None    # DBname defaults to your OS username, or replace with your dbname
+PG_USER = None    # Change to custom username if you don't want to use your local OS username
+PG_PASS = None    # Change to your password if your pg_hba.conf doesn't trust local connections
+PG_HOST = "localhost" # change to your DB instance's hostname if using a remote DB
 PG_PORT = "5432"
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
