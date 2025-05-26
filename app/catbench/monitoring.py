@@ -421,8 +421,80 @@ def get_monitoring_data(time_range, max_samples):
     # Prepare data for the frontend, limiting to the requested time range
     result = {
         'top_queries': list(monitoring_data['history']['top_queries'])[-max_samples:] if 'top_queries' in monitoring_data['history'] else [],
-        'system_metrics': {}
+        'system_metrics': {},
+        'query_metrics': {
+            'execution_rates': {},
+            'avg_times': {}
+        }
     }
+
+    # Process top queries history to build individual query metrics
+    if 'top_queries' in monitoring_data['history']:
+        query_history = list(monitoring_data['history']['top_queries'])[-max_samples:]
+
+        # Track top 5 queries by total execution time across all samples
+        query_total_times = {}
+        for sample in query_history:
+            if 'queries' in sample:
+                for query in sample['queries']:
+                    if 'queryid' in query:
+                        query_id = query['queryid']
+                        total_time = query.get('total_exec_time_delta', 0)
+                        if query_id not in query_total_times:
+                            query_total_times[query_id] = {
+                                'total_time': 0,
+                                'query_text': query.get('query', 'Unknown Query')
+                            }
+                        query_total_times[query_id]['total_time'] += total_time
+
+        # Get top 5 queries by total execution time
+        top_5_queries = sorted(query_total_times.items(),
+                              key=lambda x: x[1]['total_time'],
+                              reverse=True)[:5]
+        top_5_query_ids = [q[0] for q in top_5_queries]
+        print(top_5_query_ids)
+
+        # Build time series data for each of the top 5 queries
+        for query_id in top_5_query_ids:
+            result['query_metrics']['execution_rates'][query_id] = {
+                'query_text': query_total_times[query_id]['query_text'],
+                'data': []
+            }
+            result['query_metrics']['avg_times'][query_id] = {
+                'query_text': query_total_times[query_id]['query_text'],
+                'data': []
+            }
+
+        # Populate time series data
+        for sample in query_history:
+            timestamp = sample.get('timestamp', '')
+
+            # Initialize all top 5 queries with null for this timestamp
+            for query_id in top_5_query_ids:
+                result['query_metrics']['execution_rates'][query_id]['data'].append({
+                    'timestamp': timestamp,
+                    'value': None
+                })
+                result['query_metrics']['avg_times'][query_id]['data'].append({
+                    'timestamp': timestamp,
+                    'value': None
+                })
+
+            # Fill in actual values where available
+            if 'queries' in sample:
+                for query in sample['queries']:
+                    query_id = query.get('queryid')
+                    if query_id in top_5_query_ids:
+                        # Find the index for this timestamp
+                        idx = len(result['query_metrics']['execution_rates'][query_id]['data']) - 1
+
+                        # Update execution rate
+                        if 'calls_per_sec' in query:
+                            result['query_metrics']['execution_rates'][query_id]['data'][idx]['value'] = query['calls_per_sec']
+
+                        # Update average time
+                        if 'avg_exec_time_delta' in query:
+                            result['query_metrics']['avg_times'][query_id]['data'][idx]['value'] = query['avg_exec_time_delta']
 
     # Add system metrics with the same time range limit
     for metric in ['cpu', 'memory', 'io', 'connections', 'query_efficiency']:
