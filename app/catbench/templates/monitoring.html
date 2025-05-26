@@ -8,7 +8,6 @@
             href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css"
             rel="stylesheet"
         />
-        <!-- Chart.js for visualizations -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
         <style>
             body {
@@ -52,7 +51,10 @@
             }
             .chart-box {
                 flex: 1;
-                min-width: 300px;
+                min-width: 300px; /* Adjusted for better layout */
+                max-width: calc(
+                    50% - 10px
+                ); /* Ensure two charts fit in a row */
                 height: 300px;
                 position: relative;
                 background-color: white;
@@ -137,7 +139,7 @@
                 >← Back to Home</a
             >
             <h1>PostgreSQL Performance Monitoring</h1>
-            <div style="width: 80px"><!-- Empty div for flex spacing --></div>
+            <div style="width: 80px"></div>
         </div>
 
         <div class="controls">
@@ -175,18 +177,18 @@
                     <canvas id="query-rate-chart"></canvas>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title">Buffer Activity</div>
-                    <canvas id="buffer-chart"></canvas>
+                    <div class="chart-title">Connections</div>
+                    <canvas id="connections-chart"></canvas>
                 </div>
             </div>
             <div class="chart-row">
                 <div class="chart-box">
-                    <div class="chart-title">I/O Activity</div>
-                    <canvas id="io-chart"></canvas>
+                    <div class="chart-title">Buffer Activity</div>
+                    <canvas id="buffer-chart"></canvas>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title">Connections</div>
-                    <canvas id="connections-chart"></canvas>
+                    <div class="chart-title">I/O Activity</div>
+                    <canvas id="io-chart"></canvas>
                 </div>
             </div>
         </div>
@@ -195,22 +197,18 @@
             <h2>Top 5 Queries Performance</h2>
             <div class="chart-row">
                 <div class="chart-box">
-                    <div class="chart-title">
-                        Top 5 Queries - Execution Rate
-                    </div>
+                    <div class="chart-title">Execution Rate</div>
                     <canvas id="top-queries-rate-chart"></canvas>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title">
-                        Top 5 Queries - Average Execution Time
-                    </div>
+                    <div class="chart-title">Average Execution Time</div>
                     <canvas id="top-queries-time-chart"></canvas>
                 </div>
             </div>
         </div>
 
         <div class="chart-container">
-            <h2>Top Queries by Execution Time</h2>
+            <h2>Top Queries by Execution Time (Latest Interval)</h2>
             <table id="top-queries-table">
                 <thead>
                     <tr>
@@ -224,9 +222,7 @@
                         <th class="numeric">Temp Blocks Written/sec</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- Will be populated by JavaScript -->
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
 
@@ -242,9 +238,34 @@
 
             // Chart objects
             let queryRateChart, bufferChart, ioChart, connectionsChart;
+            let topQueriesRateChart, topQueriesTimeChart; // Declare for the new charts
 
             // Reference to interval timer
             let refreshTimer = null;
+
+            // Chart colors
+            const chartColors = [
+                "#4285F4",
+                "#DB4437",
+                "#F4B400",
+                "#0F9D58",
+                "#AB47BC",
+                "#7E57C2",
+                "#26A69A",
+                "#FF7043",
+                "#5C6BC0",
+                "#8D6E63",
+            ];
+
+            function hexToRgba(hex, alpha) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            const transparentChartColors = chartColors.map((hex) =>
+                hexToRgba(hex, 0.1),
+            );
 
             // Function to limit array length (for sliding window)
             function limitArrayLength(arr, maxLength) {
@@ -258,49 +279,43 @@
             function initCharts() {
                 debugLog("Initializing charts");
 
-                // Shared chart options to improve performance
                 const commonOptions = {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: false, // Disable animations for better performance
+                    animation: false,
                     elements: {
                         line: {
-                            tension: 0, // Use straight lines (faster rendering)
+                            tension: 0.1, // Slight tension for smoother lines
                         },
                         point: {
-                            radius: 0, // Hide points for better performance
+                            radius: 1,
                         },
                     },
                     scales: {
                         x: {
-                            grid: {
-                                display: false, // Hide grid for better performance
-                            },
+                            grid: { display: false },
                             ticks: {
-                                maxTicksLimit: 10, // Limit the number of ticks on the x-axis
-                                maxRotation: 0, // Don't rotate labels
+                                maxTicksLimit: 10,
+                                maxRotation: 0,
+                                autoSkip: true,
                             },
                         },
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                maxTicksLimit: 5, // Limit the number of ticks on the y-axis
-                            },
-                        },
+                        y: { beginAtZero: true, ticks: { maxTicksLimit: 5 } },
                     },
                     plugins: {
-                        legend: {
-                            display: true,
-                            position: "top",
+                        legend: { display: true, position: "top" },
+                        tooltip: {
+                            mode: "index", // Show tooltips for all datasets at that index
+                            intersect: false,
                         },
                     },
                     interaction: {
                         mode: "nearest",
+                        axis: "x", // Snap to x-axis
                         intersect: false,
                     },
                 };
 
-                // Query rate chart
                 const queryRateCtx = document
                     .getElementById("query-rate-chart")
                     .getContext("2d");
@@ -320,8 +335,6 @@
                     },
                     options: commonOptions,
                 });
-
-                // Buffer chart
                 const bufferCtx = document
                     .getElementById("buffer-chart")
                     .getContext("2d");
@@ -348,8 +361,6 @@
                     },
                     options: commonOptions,
                 });
-
-                // I/O chart
                 const ioCtx = document
                     .getElementById("io-chart")
                     .getContext("2d");
@@ -376,8 +387,6 @@
                     },
                     options: commonOptions,
                 });
-
-                // Connections chart
                 const connectionsCtx = document
                     .getElementById("connections-chart")
                     .getContext("2d");
@@ -397,16 +406,36 @@
                     },
                     options: commonOptions,
                 });
+
+                // Top Queries - Execution Rate Chart (Top N from latest interval)
+                const topQueriesRateCtx = document
+                    .getElementById("top-queries-rate-chart")
+                    .getContext("2d");
+                topQueriesRateChart = new Chart(topQueriesRateCtx, {
+                    type: "line",
+                    data: { labels: [], datasets: [] }, // Datasets will be added dynamically
+                    options: { ...commonOptions }, // Spread to avoid commonOptions modification by tooltip later
+                });
+
+                // Top Queries - Average Execution Time Chart (Top N from latest interval)
+                const topQueriesTimeCtx = document
+                    .getElementById("top-queries-time-chart")
+                    .getContext("2d");
+                topQueriesTimeChart = new Chart(topQueriesTimeCtx, {
+                    type: "line",
+                    data: { labels: [], datasets: [] }, // Datasets will be added dynamically
+                    options: { ...commonOptions },
+                });
             }
 
-            // Function to update the query table
-            function updateQueryTable(data) {
+            function updateQueryTable(topQueriesHistory) {
+                // Renamed parameter for clarity
                 const tableBody = document
                     .getElementById("top-queries-table")
                     .querySelector("tbody");
                 tableBody.innerHTML = "";
 
-                if (!data || data.length === 0) {
+                if (!topQueriesHistory || topQueriesHistory.length === 0) {
                     const row = document.createElement("tr");
                     row.innerHTML =
                         '<td colspan="8" style="text-align: center;">No query data available</td>';
@@ -414,139 +443,115 @@
                     return;
                 }
 
-                const latestData = data[data.length - 1];
+                const latestDataSample =
+                    topQueriesHistory[topQueriesHistory.length - 1];
                 if (
-                    !latestData ||
-                    !latestData.queries ||
-                    !Array.isArray(latestData.queries) ||
-                    latestData.queries.length === 0
+                    !latestDataSample ||
+                    !latestDataSample.queries ||
+                    !Array.isArray(latestDataSample.queries) ||
+                    latestDataSample.queries.length === 0
                 ) {
                     const row = document.createElement("tr");
                     row.innerHTML =
-                        '<td colspan="8" style="text-align: center;">No query data available</td>';
+                        '<td colspan="8" style="text-align: center;">No query data in latest sample</td>';
                     tableBody.appendChild(row);
                     return;
                 }
 
-                latestData.queries.forEach((query) => {
+                latestDataSample.queries.forEach((query) => {
                     if (!query) return;
-
                     const row = document.createElement("tr");
-
-                    // Truncate query text if too long
                     let queryText = query.query || "Unknown Query";
-                    if (queryText.length > 100) {
+                    if (queryText.length > 100)
                         queryText = queryText.substring(0, 97) + "...";
-                    }
-
                     row.innerHTML = `
-                    <td>
-                        <div class="sql-query" title="${(query.query || "").replace(/"/g, "&quot;")}">${queryText}</div>
-                    </td>
-                    <td class="numeric">${typeof query.calls_per_sec === "number" ? query.calls_per_sec.toFixed(2) : "N/A"}</td>
-                    <td class="numeric">${typeof query.avg_exec_time_delta === "number" ? query.avg_exec_time_delta.toFixed(2) : "N/A"}</td>
-                    <td class="numeric">${typeof query.rows === "number" ? query.rows.toLocaleString() : "N/A"}</td>
-                    <td class="numeric">${typeof query.shared_blks_hit_per_sec === "number" ? query.shared_blks_hit_per_sec.toFixed(2) : "N/A"}</td>
-                    <td class="numeric">${typeof query.shared_blks_read_per_sec === "number" ? query.shared_blks_read_per_sec.toFixed(2) : "N/A"}</td>
-                    <td class="numeric">${typeof query.temp_blks_read_per_sec === "number" ? query.temp_blks_read_per_sec.toFixed(2) : "N/A"}</td>
-                    <td class="numeric">${typeof query.temp_blks_written_per_sec === "number" ? query.temp_blks_written_per_sec.toFixed(2) : "N/A"}</td>
-                `;
+                        <td><div class="sql-query" title="${(query.query || "").replace(/"/g, "&quot;")}">${queryText}</div></td>
+                        <td class="numeric">${typeof query.calls_per_sec === "number" ? query.calls_per_sec.toFixed(2) : "N/A"}</td>
+                        <td class="numeric">${typeof query.avg_exec_time_delta === "number" ? query.avg_exec_time_delta.toFixed(2) : "N/A"}</td>
+                        <td class="numeric">${typeof query.rows === "number" ? query.rows.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "N/A"}</td>
+                        <td class="numeric">${typeof query.shared_blks_hit_per_sec === "number" ? query.shared_blks_hit_per_sec.toFixed(2) : "N/A"}</td>
+                        <td class="numeric">${typeof query.shared_blks_read_per_sec === "number" ? query.shared_blks_read_per_sec.toFixed(2) : "N/A"}</td>
+                        <td class="numeric">${typeof query.temp_blks_read_per_sec === "number" ? query.temp_blks_read_per_sec.toFixed(2) : "N/A"}</td>
+                        <td class="numeric">${typeof query.temp_blks_written_per_sec === "number" ? query.temp_blks_written_per_sec.toFixed(2) : "N/A"}</td>
+                    `;
                     tableBody.appendChild(row);
                 });
             }
 
-            // Function to update the charts
             function updateCharts(data) {
-                debugLog("Updating charts with new data");
-                const timeRange = parseInt(
+                debugLog("Updating charts with new data", data);
+                const timeRangeMinutes = parseInt(
                     document.getElementById("time-range").value,
                     10,
                 );
-                // Calculate max points to show based on time range
-                // Assuming 5-second refresh as base (60 points = 5 minutes)
-                const maxPoints = timeRange * 12; // timeRange in minutes * (60 seconds / 5 second intervals)
+                const refreshIntervalSeconds = parseInt(
+                    document.getElementById("refresh-interval").value,
+                    10,
+                );
+                const maxPoints =
+                    (timeRangeMinutes * 60) / refreshIntervalSeconds;
 
-                // Update query rate chart
                 if (data.top_queries && data.top_queries.length > 0) {
-                    debugLog(
-                        `Processing ${data.top_queries.length} query data points`,
-                    );
-                    let queryRateData = data.top_queries.map((sample) => {
+                    let queryRateDataPoints = data.top_queries.map((sample) => {
                         let totalRate = 0;
                         if (sample.queries && Array.isArray(sample.queries)) {
-                            totalRate = sample.queries.reduce((sum, q) => {
-                                return sum + (q.calls_per_sec || 0);
-                            }, 0);
+                            totalRate = sample.queries.reduce(
+                                (sum, q) => sum + (q.calls_per_sec || 0),
+                                0,
+                            );
                         }
                         return {
                             timestamp: sample.timestamp || "",
                             rate: totalRate,
                         };
                     });
-
-                    // Limit to maxPoints for sliding window effect
-                    queryRateData = limitArrayLength(queryRateData, maxPoints);
-
-                    if (queryRateData.length > 0) {
-                        queryRateChart.data.labels = queryRateData.map(
+                    queryRateDataPoints = limitArrayLength(
+                        queryRateDataPoints,
+                        maxPoints,
+                    );
+                    if (queryRateDataPoints.length > 0) {
+                        queryRateChart.data.labels = queryRateDataPoints.map(
                             (d) => d.timestamp,
                         );
                         queryRateChart.data.datasets[0].data =
-                            queryRateData.map((d) => d.rate);
-                        queryRateChart.update("none"); // Use 'none' mode for better performance
+                            queryRateDataPoints.map((d) => d.rate);
+                        queryRateChart.update("none");
                     }
                 }
 
-                // Update buffer chart
                 if (
                     data.system_metrics &&
                     data.system_metrics.io &&
                     Array.isArray(data.system_metrics.io)
                 ) {
-                    debugLog(
-                        `Processing ${data.system_metrics.io.length} IO data points`,
-                    );
-                    // Limit to maxPoints for sliding window effect
                     let ioMetrics = limitArrayLength(
                         data.system_metrics.io,
                         maxPoints,
                     );
-
                     if (ioMetrics.length > 0) {
-                        const bufferHitRates = ioMetrics.map((d) => {
-                            const heapHit =
-                                typeof d.heap_hit_per_sec === "number"
-                                    ? d.heap_hit_per_sec
-                                    : 0;
-                            const idxHit =
-                                typeof d.idx_hit_per_sec === "number"
-                                    ? d.idx_hit_per_sec
-                                    : 0;
-                            return heapHit + idxHit;
-                        });
-
-                        const bufferReadRates = ioMetrics.map((d) => {
-                            const heapRead =
-                                typeof d.heap_read_per_sec === "number"
-                                    ? d.heap_read_per_sec
-                                    : 0;
-                            const idxRead =
-                                typeof d.idx_read_per_sec === "number"
-                                    ? d.idx_read_per_sec
-                                    : 0;
-                            return heapRead + idxRead;
-                        });
-
                         const timestamps = ioMetrics.map(
                             (d) => d.timestamp || "",
                         );
-
                         bufferChart.data.labels = timestamps;
-                        bufferChart.data.datasets[0].data = bufferHitRates;
-                        bufferChart.data.datasets[1].data = bufferReadRates;
+                        bufferChart.data.datasets[0].data = ioMetrics.map(
+                            (d) =>
+                                (typeof d.heap_hit_per_sec === "number"
+                                    ? d.heap_hit_per_sec
+                                    : 0) +
+                                (typeof d.idx_hit_per_sec === "number"
+                                    ? d.idx_hit_per_sec
+                                    : 0),
+                        );
+                        bufferChart.data.datasets[1].data = ioMetrics.map(
+                            (d) =>
+                                (typeof d.heap_read_per_sec === "number"
+                                    ? d.heap_read_per_sec
+                                    : 0) +
+                                (typeof d.idx_read_per_sec === "number"
+                                    ? d.idx_read_per_sec
+                                    : 0),
+                        );
                         bufferChart.update("none");
-
-                        // Update I/O chart with the same timestamps
                         ioChart.data.labels = timestamps;
                         ioChart.data.datasets[0].data = ioMetrics.map((d) =>
                             typeof d.idx_read_per_sec === "number"
@@ -562,21 +567,15 @@
                     }
                 }
 
-                // Update connections chart
                 if (
                     data.system_metrics &&
                     data.system_metrics.connections &&
                     Array.isArray(data.system_metrics.connections)
                 ) {
-                    debugLog(
-                        `Processing ${data.system_metrics.connections.length} connection data points`,
-                    );
-                    // Limit to maxPoints for sliding window effect
                     let connectionMetrics = limitArrayLength(
                         data.system_metrics.connections,
                         maxPoints,
                     );
-
                     if (connectionMetrics.length > 0) {
                         connectionsChart.data.labels = connectionMetrics.map(
                             (d) => d.timestamp || "",
@@ -588,31 +587,186 @@
                         connectionsChart.update("none");
                     }
                 }
+
+                // Update Top 5 Queries Performance Charts (from latest interval data)
+                if (data.top_queries && data.top_queries.length > 0) {
+                    const latestSample =
+                        data.top_queries[data.top_queries.length - 1];
+                    let topNQueriesForChart = [];
+                    if (
+                        latestSample &&
+                        latestSample.queries &&
+                        Array.isArray(latestSample.queries)
+                    ) {
+                        topNQueriesForChart = latestSample.queries.slice(0, 5);
+                    }
+
+                    const limitedTopQueriesHistory = limitArrayLength(
+                        data.top_queries,
+                        maxPoints,
+                    );
+                    const timestampsForTopN = limitedTopQueriesHistory.map(
+                        (s) => s.timestamp || "",
+                    );
+
+                    const rateChartDatasets = topNQueriesForChart.map(
+                        (topQuery, index) => {
+                            const queryDataPoints =
+                                limitedTopQueriesHistory.map((sample) => {
+                                    const foundQuery = sample.queries
+                                        ? sample.queries.find(
+                                              (q) =>
+                                                  q.queryid ===
+                                                  topQuery.queryid,
+                                          )
+                                        : null;
+                                    return foundQuery &&
+                                        foundQuery.calls_per_sec !== undefined
+                                        ? foundQuery.calls_per_sec
+                                        : null;
+                                });
+                            let shortQueryText =
+                                topQuery.query && topQuery.query.length > 25
+                                    ? topQuery.query.substring(0, 22) + "..."
+                                    : topQuery.query;
+                            shortQueryText =
+                                shortQueryText ||
+                                `QueryID: ${topQuery.queryid}`;
+                            return {
+                                label: shortQueryText,
+                                data: queryDataPoints,
+                                borderColor:
+                                    chartColors[index % chartColors.length],
+                                backgroundColor:
+                                    transparentChartColors[
+                                        index % transparentChartColors.length
+                                    ],
+                                fill: false,
+                                tension: 0.1,
+                            };
+                        },
+                    );
+
+                    const timeChartDatasets = topNQueriesForChart.map(
+                        (topQuery, index) => {
+                            const queryDataPoints =
+                                limitedTopQueriesHistory.map((sample) => {
+                                    const foundQuery = sample.queries
+                                        ? sample.queries.find(
+                                              (q) =>
+                                                  q.queryid ===
+                                                  topQuery.queryid,
+                                          )
+                                        : null;
+                                    return foundQuery &&
+                                        foundQuery.avg_exec_time_delta !==
+                                            undefined
+                                        ? foundQuery.avg_exec_time_delta
+                                        : null;
+                                });
+                            let shortQueryText =
+                                topQuery.query && topQuery.query.length > 25
+                                    ? topQuery.query.substring(0, 22) + "..."
+                                    : topQuery.query;
+                            shortQueryText =
+                                shortQueryText ||
+                                `QueryID: ${topQuery.queryid}`;
+                            return {
+                                label: shortQueryText,
+                                data: queryDataPoints,
+                                borderColor:
+                                    chartColors[index % chartColors.length],
+                                backgroundColor:
+                                    transparentChartColors[
+                                        index % transparentChartColors.length
+                                    ],
+                                fill: false,
+                                tension: 0.1,
+                            };
+                        },
+                    );
+
+                    const tooltipTitleCallback = function (tooltipItems) {
+                        if (tooltipItems.length > 0) {
+                            const datasetIndex = tooltipItems[0].datasetIndex;
+                            if (
+                                topNQueriesForChart[datasetIndex] &&
+                                topNQueriesForChart[datasetIndex].query
+                            ) {
+                                const query =
+                                    topNQueriesForChart[datasetIndex].query;
+                                return query.length > 100
+                                    ? query.substring(0, 97) + "..."
+                                    : query;
+                            }
+                        }
+                        return "";
+                    };
+
+                    if (topQueriesRateChart) {
+                        topQueriesRateChart.data.labels = timestampsForTopN;
+                        topQueriesRateChart.data.datasets = rateChartDatasets;
+                        if (topQueriesRateChart.options.plugins.tooltip)
+                            topQueriesRateChart.options.plugins.tooltip.callbacks =
+                                { title: tooltipTitleCallback };
+                        else
+                            topQueriesRateChart.options.plugins.tooltip = {
+                                callbacks: { title: tooltipTitleCallback },
+                            };
+                        topQueriesRateChart.update("none");
+                    }
+                    if (topQueriesTimeChart) {
+                        topQueriesTimeChart.data.labels = timestampsForTopN;
+                        topQueriesTimeChart.data.datasets = timeChartDatasets;
+                        if (topQueriesTimeChart.options.plugins.tooltip)
+                            topQueriesTimeChart.options.plugins.tooltip.callbacks =
+                                { title: tooltipTitleCallback };
+                        else
+                            topQueriesTimeChart.options.plugins.tooltip = {
+                                callbacks: { title: tooltipTitleCallback },
+                            };
+                        topQueriesTimeChart.update("none");
+                    }
+                } else {
+                    if (topQueriesRateChart) {
+                        topQueriesRateChart.data.labels = [];
+                        topQueriesRateChart.data.datasets = [];
+                        topQueriesRateChart.update("none");
+                    }
+                    if (topQueriesTimeChart) {
+                        topQueriesTimeChart.data.labels = [];
+                        topQueriesTimeChart.data.datasets = [];
+                        topQueriesTimeChart.update("none");
+                    }
+                }
             }
 
-            // Function to refresh data
             function refreshData() {
                 debugLog("Refreshing data");
                 const refreshStartTime = performance.now();
-                const interval =
+                const currentInterval =
                     document.getElementById("refresh-interval").value;
+                const currentTimeRange =
+                    document.getElementById("time-range").value;
 
-                fetch(`/api/monitoring_data?interval=${interval}`)
+                fetch(
+                    `/api/monitoring_data?interval=${currentInterval}&time_range=${currentTimeRange}`,
+                )
                     .then((response) => response.json())
                     .then((data) => {
                         const processingStartTime = performance.now();
+                        debugLog("Received data:", data);
+
+                        // Pass data.top_queries (which is history) to updateQueryTable
                         updateQueryTable(data.top_queries);
                         updateCharts(data);
 
-                        // Update last refreshed timestamp
                         const now = new Date();
-                        const timeString = now.toLocaleTimeString();
                         document.getElementById("last-refreshed").textContent =
-                            `Last refreshed: ${timeString}`;
-
+                            `Last refreshed: ${now.toLocaleTimeString()}`;
                         const endTime = performance.now();
                         debugLog(
-                            `Fetch time: ${(processingStartTime - refreshStartTime).toFixed(2)}ms, Processing time: ${(endTime - processingStartTime).toFixed(2)}ms`,
+                            `Workspace time: ${(processingStartTime - refreshStartTime).toFixed(2)}ms, Processing time: ${(endTime - processingStartTime).toFixed(2)}ms`,
                         );
                     })
                     .catch((error) => {
@@ -621,70 +775,51 @@
                     });
             }
 
-            // Function to set up the refresh interval
             function setupRefreshInterval() {
                 debugLog("Setting up refresh interval");
-
-                // Clear any existing interval
-                if (refreshTimer) {
-                    clearInterval(refreshTimer);
-                    refreshTimer = null;
-                }
-
-                const interval =
+                if (refreshTimer) clearInterval(refreshTimer);
+                const intervalMs =
                     parseInt(
                         document.getElementById("refresh-interval").value,
                     ) * 1000;
                 refreshTimer = setInterval(() => {
                     debugLog(
-                        `Timer triggered refresh (interval: ${interval}ms)`,
+                        `Timer triggered refresh (interval: ${intervalMs}ms)`,
                     );
                     refreshData();
-                }, interval);
-                refreshData(); // Immediate refresh
+                }, intervalMs);
+                refreshData();
             }
 
-            // Event listeners
             document.addEventListener("DOMContentLoaded", function () {
-                // Initialize charts
                 initCharts();
-
-                // Set up refresh interval
                 setupRefreshInterval();
-
-                // Handle refresh interval change
                 document
                     .getElementById("refresh-interval")
                     .addEventListener("change", setupRefreshInterval);
-
-                // Handle manual refresh
                 document
                     .getElementById("refresh-now")
                     .addEventListener("click", refreshData);
-
-                // Handle time range change
                 document
                     .getElementById("time-range")
-                    .addEventListener("change", refreshData);
-
-                // Handle debug checkbox
+                    .addEventListener("change", refreshData); // Refresh data when time range changes
                 document
                     .getElementById("debug-checkbox")
                     .addEventListener("change", function () {
                         debugMode = this.checked;
-                        debugLog("Debug mode enabled");
-
-                        // Output initial diagnostic information
+                        debugLog(
+                            `Debug mode ${debugMode ? "enabled" : "disabled"}`,
+                        );
                         if (debugMode) {
                             console.log("Browser info:", navigator.userAgent);
                             console.log("Chart.js version:", Chart.version);
                             console.log(
-                                "Current refresh interval:",
+                                "Current refresh interval (s):",
                                 document.getElementById("refresh-interval")
                                     .value,
                             );
                             console.log(
-                                "Current time range:",
+                                "Current time range (min):",
                                 document.getElementById("time-range").value,
                             );
                         }

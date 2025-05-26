@@ -75,6 +75,9 @@ def fetch_latest_monitoring_data(get_db_func, release_db_func, interval=5):
 
                             # Calculate block-related metrics
                             for metric in ['shared_blks_hit', 'shared_blks_read', 'temp_blks_read', 'temp_blks_written']:
+                                print(metric)
+                                print(query)
+
                                 query[f'{metric}_per_sec'] = calculate_safe_delta(query[metric], prev[metric], time_delta)
                         else:
                             # No calls in this period, set rates to zero
