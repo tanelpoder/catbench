@@ -12,12 +12,12 @@ from flask import Flask, render_template, request, send_from_directory, abort, j
 
 app = Flask(__name__)
 
-# Configuration
+# Configuration (local socket using your OS user for username and dbname by default)
 PG_DB   = None    # DBname defaults to your OS username, or replace with your dbname
 PG_USER = None    # Change to custom username if you don't want to use your local OS username
 PG_PASS = None    # Change to your password if your pg_hba.conf doesn't trust local connections
-PG_HOST = "localhost" # change to your DB instance's hostname if using a remote DB
-PG_PORT = "5432"
+PG_HOST = None    # change to your DB instance's hostname if using a remote DB
+PG_PORT = '5432'
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 IMAGE_DIR  = os.path.join(APP_DIR, 'data', 'PetImages')
