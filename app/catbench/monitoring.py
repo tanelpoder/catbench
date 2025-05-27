@@ -79,7 +79,8 @@ def fetch_latest_monitoring_data(get_db_func, release_db_func, interval=5):
             # Process system metric rates
             prev_metrics = monitoring_data['previous_samples'].get('system_metrics', {})
             for category, metrics in system_metrics.items():
-                if isinstance(metrics, dict) and category in prev_metrics:
+                # the active_sessions_by_wait shows absolute sampled thread counts, no deltas or per second history needed
+                if isinstance(metrics, dict) and category in prev_metrics and category != 'active_sessions_by_wait':
                     prev = prev_metrics[category]
                     if isinstance(prev, dict):
                         # Create a list of items to avoid dict modification during iteration
@@ -126,6 +127,9 @@ def fetch_latest_monitoring_data(get_db_func, release_db_func, interval=5):
                     data_point['idx_read_per_sec'] = metrics.get('idx_read_per_sec', 0)
                     data_point['heap_hit_per_sec'] = metrics.get('heap_hit_per_sec', 0)
                     data_point['idx_hit_per_sec'] = metrics.get('idx_hit_per_sec', 0)
+                elif category == 'active_sessions_by_wait':
+                    # Store wait event data as-is
+                    data_point.update(metrics)
                 else:
                     # For other metrics, include all _per_sec values
                     per_sec_metrics = {k: v for k, v in metrics.items()
@@ -155,7 +159,7 @@ def fetch_top_queries(conn):
                     temp_blks_read, temp_blks_written, blk_read_time, blk_write_time
                 FROM pg_stat_statements
                 WHERE queryid IS NOT NULL
-                AND query NOT LIKE 'DO%' -- Tanel: currently ignoring the long running top level procedures
+                AND query NOT LIKE 'DO $%'  -- Exclude PL/pgSQL anonymous blocks
                 ORDER BY total_exec_time DESC
                 LIMIT 20
             """)
@@ -238,7 +242,38 @@ def fetch_system_metrics(conn):
                 print(f"Error fetching {category} metrics: {e}")
                 metrics[category] = {col: 0 for col in column_names[category]}
 
-        # Simple connection count
+        # Active sessions by wait event
+        try:
+            cur.execute("""
+                SELECT
+                    COUNT(*) as num_active_sessions,
+                    CASE
+                        WHEN wait_event_type IS NULL THEN 'CPU'
+                        ELSE wait_event_type || ':' || wait_event
+                    END as wait_event
+                FROM
+                    pg_stat_activity
+                WHERE
+                    state = 'active'
+                GROUP BY
+                    wait_event_type,
+                    wait_event
+                ORDER BY
+                    COUNT(*) DESC
+            """)
+
+            wait_events = {}
+            for row in cur.fetchall():
+                count, event = row
+                wait_events[event] = int(count)
+
+            metrics['active_sessions_by_wait'] = wait_events
+
+        except Exception as e:
+            print(f"Error fetching active sessions by wait: {e}")
+            metrics['active_sessions_by_wait'] = {'CPU': 0}
+
+        # Total connection count
         try:
             cur.execute("SELECT count(*) FROM pg_stat_activity")
             metrics['connections'] = safe_float(cur.fetchone()[0])

@@ -53,7 +53,7 @@
                 flex: 1;
                 min-width: 300px;
                 max-width: calc(50% - 10px);
-                height: 300px;
+                height: 320px;
                 position: relative;
                 background-color: white;
                 padding: 15px;
@@ -65,6 +65,12 @@
                 margin-bottom: 10px;
                 color: #333;
                 text-align: center;
+            }
+            .chart-subtitle {
+                font-size: 0.8em;
+                color: #666;
+                text-align: center;
+                margin-bottom: 5px;
             }
             table {
                 width: 100%;
@@ -122,6 +128,7 @@
             canvas {
                 width: 100% !important;
                 height: 100% !important;
+                max-height: 100%;
             }
         </style>
     </head>
@@ -165,22 +172,33 @@
             <h2>Database Activity Overview</h2>
             <div class="chart-row">
                 <div class="chart-box">
-                    <div class="chart-title">Total Query Executions</div>
-                    <canvas id="query-rate-chart"></canvas>
+                    <div class="chart-title">Total Query Execution Rate</div>
+                    <div style="position: relative; height: 280px">
+                        <canvas id="query-rate-chart"></canvas>
+                    </div>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title">Connections</div>
-                    <canvas id="connections-chart"></canvas>
+                    <div class="chart-title">Active Sessions by Wait Event</div>
+                    <div class="chart-subtitle">
+                        CPU = actively running, others = waiting
+                    </div>
+                    <div style="position: relative; height: 260px">
+                        <canvas id="connections-chart"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="chart-row">
                 <div class="chart-box">
                     <div class="chart-title">Buffer Activity</div>
-                    <canvas id="buffer-chart"></canvas>
+                    <div style="position: relative; height: 280px">
+                        <canvas id="buffer-chart"></canvas>
+                    </div>
                 </div>
                 <div class="chart-box">
                     <div class="chart-title">I/O Activity</div>
-                    <canvas id="io-chart"></canvas>
+                    <div style="position: relative; height: 280px">
+                        <canvas id="io-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -189,14 +207,16 @@
             <h2>Top 5 Queries Performance</h2>
             <div class="chart-row">
                 <div class="chart-box">
-                    <div class="chart-title">SQL Executions per Second</div>
-                    <canvas id="top-queries-rate-chart"></canvas>
+                    <div class="chart-title">Execution Rate</div>
+                    <div style="position: relative; height: 280px">
+                        <canvas id="top-queries-rate-chart"></canvas>
+                    </div>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title">
-                        SQL Average Execution Time (ms)
+                    <div class="chart-title">Average Execution Time</div>
+                    <div style="position: relative; height: 280px">
+                        <canvas id="top-queries-time-chart"></canvas>
                     </div>
-                    <canvas id="top-queries-time-chart"></canvas>
                 </div>
             </div>
         </div>
@@ -239,16 +259,21 @@
 
             // Chart colors
             const chartColors = [
-                "#4285F4",
-                "#DB4437",
-                "#F4B400",
-                "#0F9D58",
-                "#AB47BC",
-                "#7E57C2",
-                "#26A69A",
-                "#FF7043",
-                "#5C6BC0",
-                "#8D6E63",
+                "#4285F4", // Blue
+                "#DB4437", // Red
+                "#F4B400", // Yellow
+                "#0F9D58", // Green
+                "#AB47BC", // Purple
+                "#7E57C2", // Deep Purple
+                "#26A69A", // Teal
+                "#FF7043", // Deep Orange
+                "#5C6BC0", // Indigo
+                "#8D6E63", // Brown
+                "#78909C", // Blue Grey
+                "#EC407A", // Pink
+                "#66BB6A", // Light Green
+                "#FFA726", // Orange
+                "#29B6F6", // Light Blue
             ];
 
             function hexToRgba(hex, alpha) {
@@ -346,7 +371,7 @@
                                 fill: true,
                             },
                             {
-                                label: "OS Block Reads/sec",
+                                label: "Disk Reads/sec",
                                 data: [],
                                 borderColor: "#DB4437",
                                 backgroundColor: "rgba(219, 68, 55, 0.1)",
@@ -391,17 +416,18 @@
                     type: "line",
                     data: {
                         labels: [],
-                        datasets: [
-                            {
-                                label: "Active Connections",
-                                data: [],
-                                borderColor: "#DB4437",
-                                backgroundColor: "rgba(219, 68, 55, 0.1)",
-                                fill: true,
-                            },
-                        ],
+                        datasets: [],
                     },
-                    options: commonOptions,
+                    options: {
+                        ...commonOptions,
+                        scales: {
+                            ...commonOptions.scales,
+                            y: {
+                                ...commonOptions.scales.y,
+                                stacked: true,
+                            },
+                        },
+                    },
                 });
 
                 const topQueriesRateCtx = document
@@ -564,24 +590,76 @@
                     }
                 }
 
-                // Update Connections chart
+                // Update Active Sessions by Wait Event chart
                 if (
                     data.system_metrics &&
-                    data.system_metrics.connections &&
-                    Array.isArray(data.system_metrics.connections)
+                    data.system_metrics.active_sessions_by_wait &&
+                    Array.isArray(data.system_metrics.active_sessions_by_wait)
                 ) {
-                    let connectionMetrics = limitArrayLength(
-                        data.system_metrics.connections,
+                    let waitEventMetrics = limitArrayLength(
+                        data.system_metrics.active_sessions_by_wait,
                         maxPoints,
                     );
-                    if (connectionMetrics.length > 0) {
-                        connectionsChart.data.labels = connectionMetrics.map(
+
+                    if (waitEventMetrics.length > 0) {
+                        // Collect all unique wait events
+                        const waitEventMap = new Map();
+                        waitEventMetrics.forEach((sample) => {
+                            Object.keys(sample).forEach((key) => {
+                                if (key !== "timestamp") {
+                                    waitEventMap.set(key, true);
+                                }
+                            });
+                        });
+
+                        // Sort wait events for consistent ordering
+                        const waitEvents = Array.from(
+                            waitEventMap.keys(),
+                        ).sort();
+
+                        // Create a color mapping for wait events
+                        const waitEventColors = {};
+                        waitEvents.forEach((event, index) => {
+                            // Special colors for common events
+                            if (event === "CPU") {
+                                waitEventColors[event] = "#4285F4"; // Blue
+                            } else if (event.startsWith("IO:")) {
+                                waitEventColors[event] = "#DB4437"; // Red
+                            } else if (event.startsWith("Lock:")) {
+                                waitEventColors[event] = "#F4B400"; // Yellow
+                            } else if (event.startsWith("LWLock:")) {
+                                waitEventColors[event] = "#0F9D58"; // Green
+                            } else {
+                                // Use color from palette
+                                waitEventColors[event] =
+                                    chartColors[index % chartColors.length];
+                            }
+                        });
+
+                        const timestamps = waitEventMetrics.map(
                             (d) => d.timestamp || "",
                         );
-                        connectionsChart.data.datasets[0].data =
-                            connectionMetrics.map((d) =>
-                                typeof d.value === "number" ? d.value : 0,
+
+                        // Create datasets for each wait event
+                        const datasets = waitEvents.map((event, index) => {
+                            const data = waitEventMetrics.map(
+                                (sample) => sample[event] || 0,
                             );
+                            return {
+                                label: event,
+                                data: data,
+                                borderColor: waitEventColors[event],
+                                backgroundColor: hexToRgba(
+                                    waitEventColors[event],
+                                    0.5,
+                                ),
+                                fill: index === 0 ? "origin" : "-1", // Stack from origin or previous dataset
+                                tension: 0,
+                            };
+                        });
+
+                        connectionsChart.data.labels = timestamps;
+                        connectionsChart.data.datasets = datasets;
                         connectionsChart.update("none");
                     }
                 }
