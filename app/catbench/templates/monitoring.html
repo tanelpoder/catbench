@@ -137,7 +137,7 @@
             <a href="{{ url_for('landing_page') }}" class="nav-link"
                 >← Back to Home</a
             >
-            <h1>PostgreSQL Performance Monitoring</h1>
+            <h1>CatBench PostgreSQL Performance Monitoring</h1>
             <div style="width: 80px"></div>
         </div>
 
@@ -187,20 +187,6 @@
                     </div>
                 </div>
             </div>
-            <div class="chart-row">
-                <div class="chart-box">
-                    <div class="chart-title">Buffer Activity</div>
-                    <div style="position: relative; height: 280px">
-                        <canvas id="buffer-chart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-box">
-                    <div class="chart-title">I/O Activity</div>
-                    <div style="position: relative; height: 280px">
-                        <canvas id="io-chart"></canvas>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div class="chart-container">
@@ -238,6 +224,26 @@
                 </thead>
                 <tbody></tbody>
             </table>
+        </div>
+
+        <div class="chart-container">
+            <h2>Database I/O Activity Breakdown</h2>
+            This view doesn't work well with long-running stored procedures
+            (metrics updated only at the end of the call)
+            <div class="chart-row">
+                <div class="chart-box">
+                    <div class="chart-title">Buffer Activity</div>
+                    <div style="position: relative; height: 280px">
+                        <canvas id="buffer-chart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title">I/O Activity</div>
+                    <div style="position: relative; height: 280px">
+                        <canvas id="io-chart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <script>
