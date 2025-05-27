@@ -155,6 +155,7 @@ def fetch_top_queries(conn):
                     temp_blks_read, temp_blks_written, blk_read_time, blk_write_time
                 FROM pg_stat_statements
                 WHERE queryid IS NOT NULL
+                AND query NOT LIKE 'DO%' -- Tanel: currently ignoring the long running top level procedures
                 ORDER BY total_exec_time DESC
                 LIMIT 20
             """)

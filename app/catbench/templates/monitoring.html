@@ -165,7 +165,7 @@
             <h2>Database Activity Overview</h2>
             <div class="chart-row">
                 <div class="chart-box">
-                    <div class="chart-title">Query Execution Rate</div>
+                    <div class="chart-title">Total Query Executions</div>
                     <canvas id="query-rate-chart"></canvas>
                 </div>
                 <div class="chart-box">
@@ -189,11 +189,13 @@
             <h2>Top 5 Queries Performance</h2>
             <div class="chart-row">
                 <div class="chart-box">
-                    <div class="chart-title">Execution Rate</div>
+                    <div class="chart-title">SQL Executions per Second</div>
                     <canvas id="top-queries-rate-chart"></canvas>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title">Average Execution Time</div>
+                    <div class="chart-title">
+                        SQL Average Execution Time (ms)
+                    </div>
                     <canvas id="top-queries-time-chart"></canvas>
                 </div>
             </div>
@@ -344,7 +346,7 @@
                                 fill: true,
                             },
                             {
-                                label: "Disk Reads/sec",
+                                label: "OS Block Reads/sec",
                                 data: [],
                                 borderColor: "#DB4437",
                                 backgroundColor: "rgba(219, 68, 55, 0.1)",
@@ -528,10 +530,10 @@
                         );
                         bufferChart.data.labels = timestamps;
                         bufferChart.data.datasets[0].data = dbMetrics.map(
-                            (d) => d.buffer_hits_per_sec || 0
+                            (d) => d.buffer_hits_per_sec || 0,
                         );
                         bufferChart.data.datasets[1].data = dbMetrics.map(
-                            (d) => d.disk_reads_per_sec || 0
+                            (d) => d.disk_reads_per_sec || 0,
                         );
                         bufferChart.update("none");
                     }
@@ -552,11 +554,11 @@
                             (d) => d.timestamp || "",
                         );
                         ioChart.data.labels = timestamps;
-                        ioChart.data.datasets[0].data = ioMetrics.map((d) =>
-                            d.idx_read_per_sec || 0
+                        ioChart.data.datasets[0].data = ioMetrics.map(
+                            (d) => d.idx_read_per_sec || 0,
                         );
-                        ioChart.data.datasets[1].data = ioMetrics.map((d) =>
-                            d.heap_read_per_sec || 0
+                        ioChart.data.datasets[1].data = ioMetrics.map(
+                            (d) => d.heap_read_per_sec || 0,
                         );
                         ioChart.update("none");
                     }
@@ -590,55 +592,101 @@
                     if (data.query_metrics.execution_rates) {
                         const datasets = [];
                         let timestamps = [];
-                        
-                        Object.keys(data.query_metrics.execution_rates).forEach((queryId, index) => {
-                            const queryData = data.query_metrics.execution_rates[queryId];
-                            if (queryData.data && queryData.data.length > 0) {
-                                timestamps = queryData.data.map(d => d.timestamp);
-                                let shortQueryText = queryData.query_text && queryData.query_text.length > 25
-                                    ? queryData.query_text.substring(0, 22) + "..."
-                                    : queryData.query_text || `Query ${queryId}`;
-                                
-                                datasets.push({
-                                    label: shortQueryText,
-                                    data: queryData.data.map(d => d.value),
-                                    borderColor: chartColors[index % chartColors.length],
-                                    backgroundColor: transparentChartColors[index % transparentChartColors.length],
-                                    fill: false,
-                                    tension: 0.1,
-                                });
-                            }
-                        });
-                        
+
+                        Object.keys(data.query_metrics.execution_rates).forEach(
+                            (queryId, index) => {
+                                const queryData =
+                                    data.query_metrics.execution_rates[queryId];
+                                if (
+                                    queryData.data &&
+                                    queryData.data.length > 0
+                                ) {
+                                    timestamps = queryData.data.map(
+                                        (d) => d.timestamp,
+                                    );
+                                    let shortQueryText =
+                                        queryData.query_text &&
+                                        queryData.query_text.length > 25
+                                            ? queryData.query_text.substring(
+                                                  0,
+                                                  22,
+                                              ) + "..."
+                                            : queryData.query_text ||
+                                              `Query ${queryId}`;
+
+                                    datasets.push({
+                                        label: shortQueryText,
+                                        data: queryData.data.map(
+                                            (d) => d.value,
+                                        ),
+                                        borderColor:
+                                            chartColors[
+                                                index % chartColors.length
+                                            ],
+                                        backgroundColor:
+                                            transparentChartColors[
+                                                index %
+                                                    transparentChartColors.length
+                                            ],
+                                        fill: false,
+                                        tension: 0.1,
+                                    });
+                                }
+                            },
+                        );
+
                         topQueriesRateChart.data.labels = timestamps;
                         topQueriesRateChart.data.datasets = datasets;
                         topQueriesRateChart.update("none");
                     }
-                    
+
                     // Update average time chart
                     if (data.query_metrics.avg_times) {
                         const datasets = [];
                         let timestamps = [];
-                        
-                        Object.keys(data.query_metrics.avg_times).forEach((queryId, index) => {
-                            const queryData = data.query_metrics.avg_times[queryId];
-                            if (queryData.data && queryData.data.length > 0) {
-                                timestamps = queryData.data.map(d => d.timestamp);
-                                let shortQueryText = queryData.query_text && queryData.query_text.length > 25
-                                    ? queryData.query_text.substring(0, 22) + "..."
-                                    : queryData.query_text || `Query ${queryId}`;
-                                
-                                datasets.push({
-                                    label: shortQueryText,
-                                    data: queryData.data.map(d => d.value),
-                                    borderColor: chartColors[index % chartColors.length],
-                                    backgroundColor: transparentChartColors[index % transparentChartColors.length],
-                                    fill: false,
-                                    tension: 0.1,
-                                });
-                            }
-                        });
-                        
+
+                        Object.keys(data.query_metrics.avg_times).forEach(
+                            (queryId, index) => {
+                                const queryData =
+                                    data.query_metrics.avg_times[queryId];
+                                if (
+                                    queryData.data &&
+                                    queryData.data.length > 0
+                                ) {
+                                    timestamps = queryData.data.map(
+                                        (d) => d.timestamp,
+                                    );
+                                    let shortQueryText =
+                                        queryData.query_text &&
+                                        queryData.query_text.length > 25
+                                            ? queryData.query_text.substring(
+                                                  0,
+                                                  22,
+                                              ) + "..."
+                                            : queryData.query_text ||
+                                              `Query ${queryId}`;
+
+                                    datasets.push({
+                                        label: shortQueryText,
+                                        data: queryData.data.map(
+                                            (d) => d.value,
+                                        ),
+                                        borderColor:
+                                            chartColors[
+                                                index % chartColors.length
+                                            ],
+                                        backgroundColor:
+                                            transparentChartColors[
+                                                index %
+                                                    transparentChartColors.length
+                                            ],
+                                        fill: false,
+                                        tension: 0.1,
+                                    });
+                                }
+                            },
+                        );
+
                         topQueriesTimeChart.data.labels = timestamps;
                         topQueriesTimeChart.data.datasets = datasets;
                         topQueriesTimeChart.update("none");
