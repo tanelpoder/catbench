@@ -1,509 +1,315 @@
+"""PostgreSQL monitoring module for CatBench."""
 import time
-from datetime import datetime
 from collections import defaultdict, deque
+from datetime import datetime
 
-# Global variables for storing monitoring data
+
+# Global monitoring data storage
 monitoring_data = {
     'last_sample_time': None,
     'previous_samples': {},
-    'history': defaultdict(lambda: deque(maxlen=120))  # Keep last 120 samples (10 minutes at 5s interval)
+    'history': defaultdict(lambda: deque(maxlen=120))  # 10 minutes at 5s interval
 }
 
 
-def clean_numeric_data(value):
-    """Convert the value to a float if it's numeric, or return 0."""
-    if value is None:
-        return 0
+def safe_float(value, default=0):
+    """Convert to float safely."""
     try:
-        return float(value)
+        return float(value) if value is not None else default
     except (ValueError, TypeError):
+        return default
+
+
+def calculate_rate(current, previous, time_delta):
+    """Calculate rate per second."""
+    if time_delta <= 0:
         return 0
-
-
-def calculate_safe_delta(current, previous, time_delta):
-    """Safely calculate rate (delta / time) with appropriate bounds checking."""
-    if current is None or previous is None or time_delta <= 0:
-        return 0
-
-    try:
-        current_val = float(current)
-        previous_val = float(previous)
-
-        # If the counter has been reset or gone backwards, just return 0
-        if current_val < previous_val:
-            return 0
-
-        return (current_val - previous_val) / time_delta
-    except (ValueError, TypeError):
-        return 0
+    curr = safe_float(current)
+    prev = safe_float(previous)
+    return max(0, (curr - prev) / time_delta)  # Prevent negative rates
 
 
 def fetch_latest_monitoring_data(get_db_func, release_db_func, interval=5):
-    """
-    Fetch the latest monitoring data from PostgreSQL and calculate deltas from the previous sample.
-    """
+    """Fetch and process monitoring data with rate calculations."""
     current_time = time.time()
 
-    # If we haven't sampled before or it's time for a new sample
-    if monitoring_data['last_sample_time'] is None or (current_time - monitoring_data['last_sample_time']) >= interval:
-        conn = get_db_func()
-        try:
-            # Get top queries from pg_stat_statements
-            top_queries = fetch_top_queries(conn)
+    # Check if it's time for a new sample
+    if monitoring_data['last_sample_time'] and \
+       (current_time - monitoring_data['last_sample_time']) < interval:
+        return
 
-            # Get system-wide metrics
-            system_metrics = fetch_system_metrics(conn)
+    conn = get_db_func()
+    try:
+        # Fetch current data
+        top_queries = fetch_top_queries(conn)
+        system_metrics = fetch_system_metrics(conn)
 
-            # Calculate deltas if we have previous samples
-            if monitoring_data['previous_samples']:
-                time_delta = current_time - monitoring_data['last_sample_time']
+        # Calculate rates if we have previous samples
+        if monitoring_data['previous_samples']:
+            time_delta = current_time - monitoring_data['last_sample_time']
 
-                # Calculate deltas for top queries
-                for query in top_queries:
-                    query_id = query['queryid']
-                    if query_id in monitoring_data['previous_samples']['top_queries']:
-                        prev = monitoring_data['previous_samples']['top_queries'][query_id]
+            # Process query rates
+            prev_queries = monitoring_data['previous_samples'].get('top_queries', {})
+            for query in top_queries:
+                query_id = query['queryid']
+                if query_id in prev_queries:
+                    prev = prev_queries[query_id]
+                    query['calls_per_sec'] = calculate_rate(
+                        query['calls'], prev['calls'], time_delta
+                    )
 
-                        # Calculate calls per second
-                        calls_delta = clean_numeric_data(query['calls']) - clean_numeric_data(prev['calls'])
-                        query['calls_per_sec'] = calculate_safe_delta(query['calls'], prev['calls'], time_delta)
+                    calls_delta = safe_float(query['calls']) - safe_float(prev['calls'])
+                    if calls_delta > 0:
+                        total_time_delta = (safe_float(query['total_exec_time']) -
+                                          safe_float(prev['total_exec_time']))
+                        query['avg_exec_time_delta'] = total_time_delta / calls_delta
 
-                        # Only calculate other metrics if there were actual calls
-                        if calls_delta > 0:
-                            query['total_exec_time_delta'] = clean_numeric_data(query['total_exec_time']) - clean_numeric_data(prev['total_exec_time'])
-                            query['avg_exec_time_delta'] = query['total_exec_time_delta'] / calls_delta
-
-                            # Calculate block-related metrics
-                            for metric in ['shared_blks_hit', 'shared_blks_read', 'temp_blks_read', 'temp_blks_written']:
-                                print(metric)
-                                print(query)
-
-                                query[f'{metric}_per_sec'] = calculate_safe_delta(query[metric], prev[metric], time_delta)
-                        else:
-                            # No calls in this period, set rates to zero
-                            query['total_exec_time_delta'] = 0
-                            query['avg_exec_time_delta'] = 0
-                            for metric in ['shared_blks_hit', 'shared_blks_read', 'temp_blks_read', 'temp_blks_written']:
-                                query[f'{metric}_per_sec'] = 0
-
-                # Calculate deltas for system metrics
-                for metric in system_metrics:
-                    if metric in monitoring_data['previous_samples']['system_metrics']:
-                        prev = monitoring_data['previous_samples']['system_metrics'][metric]
-
-                        if isinstance(system_metrics[metric], dict) and isinstance(prev, dict):
-                            # Create a new dictionary for the per-second rates
-                            for key in list(system_metrics[metric].keys()):
-                                # Skip keys that already have _per_sec suffix
-                                if key.endswith('_per_sec'):
-                                    continue
-
-                                # Skip non-numeric values
-                                if not isinstance(system_metrics[metric][key], (int, float)):
-                                    continue
-
-                                if key in prev and isinstance(prev[key], (int, float)):
-                                    # Calculate rate as (current - previous) / time_delta
-                                    rate = calculate_safe_delta(system_metrics[metric][key], prev[key], time_delta)
-                                    system_metrics[metric][f"{key}_per_sec"] = rate
-
-            # Store current samples as previous for next run
-            monitoring_data['previous_samples'] = {
-                'top_queries': {query['queryid']: query for query in top_queries},
-                'system_metrics': system_metrics
-            }
-
-            # Store current time
-            monitoring_data['last_sample_time'] = current_time
-
-            # Add to history
-            timestamp = datetime.now().strftime('%H:%M:%S')
-
-            # Transform top_queries into a format suitable for charts
-            valid_queries = [q for q in top_queries if 'calls_per_sec' in q]
-            top_queries_data = {
-                'timestamp': timestamp,
-                'queries': sorted(
-                    valid_queries,
-                    key=lambda x: x.get('total_exec_time_delta', 0),
-                    reverse=True
-                )[:10]  # Top 10 queries by execution time
-            }
-            monitoring_data['history']['top_queries'].append(top_queries_data)
-
-            # Add system metrics to history
-            for metric, value in system_metrics.items():
-                # Create a data point for this metric
-                data_point = {'timestamp': timestamp}
-
-                if isinstance(value, dict):
-                    # Extract rate values (those ending with _per_sec) if they exist
-                    rate_values = {k: v for k, v in value.items() if k.endswith('_per_sec') and isinstance(v, (int, float))}
-                    if rate_values:
-                        # If we have rate values, add them to the data point
-                        data_point.update(rate_values)
+                        # Calculate block rates
+                        for metric in ['shared_blks_hit', 'shared_blks_read',
+                                     'temp_blks_read', 'temp_blks_written']:
+                            query[f'{metric}_per_sec'] = calculate_rate(
+                                query.get(metric, 0), prev.get(metric, 0), time_delta
+                            )
                     else:
-                        # Otherwise, just include the original values
-                        data_point.update({k: v for k, v in value.items() if isinstance(v, (int, float))})
-                elif isinstance(value, (int, float)):
-                    # If the value is a simple number, add it directly
-                    data_point['value'] = value
+                        query['avg_exec_time_delta'] = 0
+                        for metric in ['shared_blks_hit', 'shared_blks_read',
+                                     'temp_blks_read', 'temp_blks_written']:
+                            query[f'{metric}_per_sec'] = 0
+
+            # Process system metric rates
+            prev_metrics = monitoring_data['previous_samples'].get('system_metrics', {})
+            for category, metrics in system_metrics.items():
+                if isinstance(metrics, dict) and category in prev_metrics:
+                    prev = prev_metrics[category]
+                    if isinstance(prev, dict):
+                        # Create a list of items to avoid dict modification during iteration
+                        metric_items = list(metrics.items())
+                        for key, value in metric_items:
+                            if isinstance(value, (int, float)) and key in prev:
+                                rate_key = f"{key}_per_sec"
+                                metrics[rate_key] = calculate_rate(
+                                    value, prev[key], time_delta
+                                )
+
+        # Store current samples
+        monitoring_data['previous_samples'] = {
+            'top_queries': {q['queryid']: q for q in top_queries},
+            'system_metrics': system_metrics
+        }
+        monitoring_data['last_sample_time'] = current_time
+
+        # Add to history
+        timestamp = datetime.now().strftime('%H:%M:%S')
+
+        # Store top queries
+        monitoring_data['history']['top_queries'].append({
+            'timestamp': timestamp,
+            'queries': sorted(
+                [q for q in top_queries if 'calls_per_sec' in q],
+                key=lambda x: x.get('total_exec_time_delta', 0),
+                reverse=True
+            )[:10]
+        })
+
+        # Store system metrics with proper structure
+        for category, metrics in system_metrics.items():
+            if isinstance(metrics, dict):
+                data_point = {'timestamp': timestamp}
+                # For database metrics, we want the _per_sec values
+                if category == 'database':
+                    # Buffer activity uses buffer_hits and disk_reads
+                    data_point['buffer_hits_per_sec'] = metrics.get('buffer_hits_per_sec', 0)
+                    data_point['disk_reads_per_sec'] = metrics.get('disk_reads_per_sec', 0)
+                elif category == 'io':
+                    # I/O activity uses heap and index reads
+                    data_point['heap_read_per_sec'] = metrics.get('heap_read_per_sec', 0)
+                    data_point['idx_read_per_sec'] = metrics.get('idx_read_per_sec', 0)
+                    data_point['heap_hit_per_sec'] = metrics.get('heap_hit_per_sec', 0)
+                    data_point['idx_hit_per_sec'] = metrics.get('idx_hit_per_sec', 0)
                 else:
-                    # Skip this metric if it's not a number or dictionary
-                    continue
-
-                # Add the data point to the history
-                monitoring_data['history'][metric].append(data_point)
-
-        finally:
-            release_db_func(conn)
+                    # For other metrics, include all _per_sec values
+                    per_sec_metrics = {k: v for k, v in metrics.items()
+                                     if k.endswith('_per_sec') and isinstance(v, (int, float))}
+                    data_point.update(per_sec_metrics)
+                monitoring_data['history'][category].append(data_point)
+            elif isinstance(metrics, (int, float)):
+                monitoring_data['history'][category].append({
+                    'timestamp': timestamp,
+                    'value': metrics
+                })
+    finally:
+        release_db_func(conn)
 
 
 def fetch_top_queries(conn):
-    """
-    Fetch top queries from pg_stat_statements ordered by total execution time.
-    """
-    top_queries = []
+    """Fetch top queries from pg_stat_statements."""
     try:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT
-                    queryid,
-                    query,
-                    calls,
-                    total_exec_time,
-                    min_exec_time,
-                    max_exec_time,
-                    mean_exec_time,
-                    stddev_exec_time,
-                    rows / calls AS rows,
-                    shared_blks_hit,
-                    shared_blks_read,
-                    shared_blks_dirtied,
-                    shared_blks_written,
-                    local_blks_hit,
-                    local_blks_read,
-                    local_blks_dirtied,
-                    local_blks_written,
-                    temp_blks_read,
-                    temp_blks_written,
-                    blk_read_time,
-                    blk_write_time
+                    queryid, query, calls, total_exec_time,
+                    min_exec_time, max_exec_time, mean_exec_time, stddev_exec_time,
+                    CASE WHEN calls > 0 THEN rows / calls ELSE 0 END AS rows,
+                    shared_blks_hit, shared_blks_read, shared_blks_dirtied, shared_blks_written,
+                    local_blks_hit, local_blks_read, local_blks_dirtied, local_blks_written,
+                    temp_blks_read, temp_blks_written, blk_read_time, blk_write_time
                 FROM pg_stat_statements
                 WHERE queryid IS NOT NULL
                 ORDER BY total_exec_time DESC
                 LIMIT 20
             """)
-            for row in cur.fetchall():
-                # Convert row to dictionary
-                query_data = {
-                    'queryid': row[0],
-                    'query': row[1],
-                    'calls': row[2],
-                    'total_exec_time': row[3],
-                    'min_exec_time': row[4],
-                    'max_exec_time': row[5],
-                    'mean_exec_time': row[6],
-                    'stddev_exec_time': row[7],
-                    'rows': row[8],
-                    'shared_blks_hit': row[9],
-                    'shared_blks_read': row[10],
-                    'shared_blks_dirtied': row[11],
-                    'shared_blks_written': row[12],
-                    'local_blks_hit': row[13],
-                    'local_blks_read': row[14],
-                    'local_blks_dirtied': row[15],
-                    'local_blks_written': row[16],
-                    'temp_blks_read': row[17],
-                    'temp_blks_written': row[18],
-                    'blk_read_time': row[19],
-                    'blk_write_time': row[20]
-                }
-                top_queries.append(query_data)
+
+            columns = ['queryid', 'query', 'calls', 'total_exec_time', 'min_exec_time',
+                      'max_exec_time', 'mean_exec_time', 'stddev_exec_time', 'rows',
+                      'shared_blks_hit', 'shared_blks_read', 'shared_blks_dirtied',
+                      'shared_blks_written', 'local_blks_hit', 'local_blks_read',
+                      'local_blks_dirtied', 'local_blks_written', 'temp_blks_read',
+                      'temp_blks_written', 'blk_read_time', 'blk_write_time']
+
+            return [dict(zip(columns, row)) for row in cur.fetchall()]
     except Exception as e:
         print(f"Error fetching top queries: {e}")
-        # If pg_stat_statements is not available, return empty list
         return []
-
-    return top_queries
 
 
 def fetch_system_metrics(conn):
-    """
-    Fetch system-wide PostgreSQL metrics.
-    """
-    system_metrics = {}
-    try:
-        with conn.cursor() as cur:
-            # Database statistics
-            cur.execute("""
-                SELECT
-                    sum(numbackends) as connections,
-                    sum(xact_commit) as commits,
-                    sum(xact_rollback) as rollbacks,
-                    sum(blks_read) as disk_reads,
-                    sum(blks_hit) as buffer_hits,
-                    sum(tup_returned) as rows_returned,
-                    sum(tup_fetched) as rows_fetched,
-                    sum(tup_inserted) as rows_inserted,
-                    sum(tup_updated) as rows_updated,
-                    sum(tup_deleted) as rows_deleted
-                FROM pg_stat_database
-            """)
-            row = cur.fetchone()
-            system_metrics['database'] = {
-                'connections': row[0] or 0,
-                'commits': row[1] or 0,
-                'rollbacks': row[2] or 0,
-                'disk_reads': row[3] or 0,
-                'buffer_hits': row[4] or 0,
-                'rows_returned': row[5] or 0,
-                'rows_fetched': row[6] or 0,
-                'rows_inserted': row[7] or 0,
-                'rows_updated': row[8] or 0,
-                'rows_deleted': row[9] or 0
-            }
+    """Fetch system-wide PostgreSQL metrics."""
+    metrics = {}
 
-            # Buffer statistics
+    queries = {
+        'database': """
+            SELECT
+                sum(numbackends) as connections,
+                sum(xact_commit) as commits,
+                sum(xact_rollback) as rollbacks,
+                sum(blks_read) as disk_reads,
+                sum(blks_hit) as buffer_hits,
+                sum(tup_returned) as rows_returned,
+                sum(tup_fetched) as rows_fetched,
+                sum(tup_inserted) as rows_inserted,
+                sum(tup_updated) as rows_updated,
+                sum(tup_deleted) as rows_deleted
+            FROM pg_stat_database
+        """,
+        'bgwriter': """
+            SELECT
+                buffers_checkpoint,
+                buffers_clean,
+                buffers_backend,
+                buffers_backend_fsync,
+                buffers_alloc
+            FROM pg_stat_bgwriter
+        """,
+        'io': """
+            SELECT
+                COALESCE(sum(heap_blks_read), 0) as heap_read,
+                COALESCE(sum(heap_blks_hit), 0) as heap_hit,
+                COALESCE(sum(idx_blks_read), 0) as idx_read,
+                COALESCE(sum(idx_blks_hit), 0) as idx_hit,
+                COALESCE(sum(toast_blks_read), 0) as toast_read,
+                COALESCE(sum(toast_blks_hit), 0) as toast_hit,
+                COALESCE(sum(tidx_blks_read), 0) as tidx_read,
+                COALESCE(sum(tidx_blks_hit), 0) as tidx_hit
+            FROM pg_statio_all_tables
+        """
+    }
+
+    column_names = {
+        'database': ['connections', 'commits', 'rollbacks', 'disk_reads', 'buffer_hits',
+                    'rows_returned', 'rows_fetched', 'rows_inserted', 'rows_updated',
+                    'rows_deleted'],
+        'bgwriter': ['buffers_checkpoint', 'buffers_clean', 'buffers_backend',
+                    'buffers_backend_fsync', 'buffers_alloc'],
+        'io': ['heap_read', 'heap_hit', 'idx_read', 'idx_hit',
+               'toast_read', 'toast_hit', 'tidx_read', 'tidx_hit']
+    }
+
+    with conn.cursor() as cur:
+        for category, query in queries.items():
             try:
-                cur.execute("""
-                    SELECT
-                        buffers_checkpoint,
-                        buffers_clean,
-                        buffers_backend,
-                        buffers_backend_fsync,
-                        buffers_alloc
-                    FROM pg_stat_bgwriter
-                """)
+                cur.execute(query)
                 row = cur.fetchone()
                 if row:
-                    system_metrics['bgwriter'] = {
-                        'buffers_checkpoint': row[0] or 0,
-                        'buffers_clean': row[1] or 0,
-                        'buffers_backend': row[2] or 0,
-                        'buffers_backend_fsync': row[3] or 0,
-                        'buffers_alloc': row[4] or 0
-                    }
-                else:
-                    system_metrics['bgwriter'] = {
-                        'buffers_checkpoint': 0,
-                        'buffers_clean': 0,
-                        'buffers_backend': 0,
-                        'buffers_backend_fsync': 0,
-                        'buffers_alloc': 0
-                    }
+                    metrics[category] = dict(
+                        zip(column_names[category], [safe_float(v) for v in row])
+                    )
             except Exception as e:
-                print(f"Error fetching bgwriter statistics: {e}")
-                system_metrics['bgwriter'] = {
-                    'buffers_checkpoint': 0,
-                    'buffers_clean': 0,
-                    'buffers_backend': 0,
-                    'buffers_backend_fsync': 0,
-                    'buffers_alloc': 0
-                }
+                print(f"Error fetching {category} metrics: {e}")
+                metrics[category] = {col: 0 for col in column_names[category]}
 
-            # Connection statistics
-            try:
-                cur.execute("""
-                    SELECT count(*) FROM pg_stat_activity
-                """)
-                system_metrics['connections'] = cur.fetchone()[0] or 0
-            except Exception as e:
-                print(f"Error fetching connection statistics: {e}")
-                system_metrics['connections'] = 0
+        # Simple connection count
+        try:
+            cur.execute("SELECT count(*) FROM pg_stat_activity")
+            metrics['connections'] = safe_float(cur.fetchone()[0])
+        except Exception as e:
+            print(f"Error fetching connections: {e}")
+            metrics['connections'] = 0
 
-            # Memory usage
-            try:
-                cur.execute("""
-                    SELECT
-                        COALESCE(sum(pg_total_relation_size(c.oid)), 0) as total_table_size,
-                        COALESCE(sum(pg_indexes_size(c.oid)), 0) as total_index_size,
-                        COALESCE(sum(pg_total_relation_size(c.oid) - pg_relation_size(c.oid)), 0) as total_external_size
-                    FROM pg_class c
-                    JOIN pg_namespace n ON n.oid = c.relnamespace
-                    WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
-                    AND c.relkind IN ('r', 't')
-                """)
-                row = cur.fetchone()
-                system_metrics['memory'] = {
-                    'total_table_size': row[0] or 0,
-                    'total_index_size': row[1] or 0,
-                    'total_external_size': row[2] or 0
-                }
-            except Exception as e:
-                print(f"Error fetching memory statistics: {e}")
-                system_metrics['memory'] = {
-                    'total_table_size': 0,
-                    'total_index_size': 0,
-                    'total_external_size': 0
-                }
-
-            # I/O statistics
-            try:
-                cur.execute("""
-                    SELECT
-                        COALESCE(sum(heap_blks_read), 0) as heap_read,
-                        COALESCE(sum(heap_blks_hit), 0) as heap_hit,
-                        COALESCE(sum(idx_blks_read), 0) as idx_read,
-                        COALESCE(sum(idx_blks_hit), 0) as idx_hit,
-                        COALESCE(sum(toast_blks_read), 0) as toast_read,
-                        COALESCE(sum(toast_blks_hit), 0) as toast_hit,
-                        COALESCE(sum(tidx_blks_read), 0) as tidx_read,
-                        COALESCE(sum(tidx_blks_hit), 0) as tidx_hit
-                    FROM pg_statio_all_tables
-                """)
-                row = cur.fetchone()
-                if row:
-                    system_metrics['io'] = {
-                        'heap_read': row[0] or 0,
-                        'heap_hit': row[1] or 0,
-                        'idx_read': row[2] or 0,
-                        'idx_hit': row[3] or 0,
-                        'toast_read': row[4] or 0,
-                        'toast_hit': row[5] or 0,
-                        'tidx_read': row[6] or 0,
-                        'tidx_hit': row[7] or 0
-                    }
-                else:
-                    system_metrics['io'] = {
-                        'heap_read': 0,
-                        'heap_hit': 0,
-                        'idx_read': 0,
-                        'idx_hit': 0,
-                        'toast_read': 0,
-                        'toast_hit': 0,
-                        'tidx_read': 0,
-                        'tidx_hit': 0
-                    }
-            except Exception as e:
-                print(f"Error fetching I/O statistics: {e}")
-                system_metrics['io'] = {
-                    'heap_read': 0,
-                    'heap_hit': 0,
-                    'idx_read': 0,
-                    'idx_hit': 0,
-                    'toast_read': 0,
-                    'toast_hit': 0,
-                    'tidx_read': 0,
-                    'tidx_hit': 0
-                }
-
-            # Query efficiency statistics
-            try:
-                cur.execute("""
-                    SELECT
-                        COALESCE(sum(calls), 0) as total_calls,
-                        COALESCE(sum(total_exec_time), 0) as total_time,
-                        COALESCE(sum(rows), 0) as total_rows
-                    FROM pg_stat_statements
-                """)
-                row = cur.fetchone()
-                system_metrics['query_efficiency'] = {
-                    'total_calls': row[0] or 0,
-                    'total_time': row[1] or 0,
-                    'total_rows': row[2] or 0
-                }
-            except Exception as e:
-                print(f"Error fetching query efficiency statistics: {e}")
-                system_metrics['query_efficiency'] = {
-                    'total_calls': 0,
-                    'total_time': 0,
-                    'total_rows': 0
-                }
-
-    except Exception as e:
-        print(f"Error fetching system metrics: {e}")
-
-    return system_metrics
+    return metrics
 
 
 def get_monitoring_data(time_range, max_samples):
-    """
-    Get monitoring data for the frontend, limiting to the requested time range.
-    """
-    # Prepare data for the frontend, limiting to the requested time range
+    """Get monitoring data for frontend."""
+    history = monitoring_data['history']
+
+    # Get limited history
     result = {
-        'top_queries': list(monitoring_data['history']['top_queries'])[-max_samples:] if 'top_queries' in monitoring_data['history'] else [],
-        'system_metrics': {},
-        'query_metrics': {
-            'execution_rates': {},
-            'avg_times': {}
+        'top_queries': list(history['top_queries'])[-max_samples:],
+        'system_metrics': {
+            metric: list(data)[-max_samples:]
+            for metric, data in history.items()
+            if metric != 'top_queries'
         }
     }
 
-    # Process top queries history to build individual query metrics
-    if 'top_queries' in monitoring_data['history']:
-        query_history = list(monitoring_data['history']['top_queries'])[-max_samples:]
+    # Build query metrics for top 5 queries
+    if result['top_queries']:
+        # Find top 5 queries by total execution time
+        query_totals = defaultdict(lambda: {'total_time': 0, 'query_text': ''})
 
-        # Track top 5 queries by total execution time across all samples
-        query_total_times = {}
-        for sample in query_history:
-            if 'queries' in sample:
-                for query in sample['queries']:
-                    if 'queryid' in query:
-                        query_id = query['queryid']
-                        total_time = query.get('total_exec_time_delta', 0)
-                        if query_id not in query_total_times:
-                            query_total_times[query_id] = {
-                                'total_time': 0,
-                                'query_text': query.get('query', 'Unknown Query')
-                            }
-                        query_total_times[query_id]['total_time'] += total_time
+        for sample in result['top_queries']:
+            for query in sample.get('queries', []):
+                query_id = query.get('queryid')
+                if query_id:
+                    query_totals[query_id]['total_time'] += query.get('total_exec_time_delta', 0)
+                    query_totals[query_id]['query_text'] = query.get('query', 'Unknown Query')
 
-        # Get top 5 queries by total execution time
-        top_5_queries = sorted(query_total_times.items(),
-                              key=lambda x: x[1]['total_time'],
-                              reverse=True)[:5]
-        top_5_query_ids = [q[0] for q in top_5_queries]
-        print(top_5_query_ids)
+        # Get top 5 query IDs
+        top_5 = sorted(query_totals.items(),
+                      key=lambda x: x[1]['total_time'],
+                      reverse=True)[:5]
+        top_5_ids = [q[0] for q in top_5]
 
-        # Build time series data for each of the top 5 queries
-        for query_id in top_5_query_ids:
+        # Build time series for each metric
+        result['query_metrics'] = {
+            'execution_rates': {},
+            'avg_times': {}
+        }
+
+        for query_id in top_5_ids:
+            query_text = query_totals[query_id]['query_text']
             result['query_metrics']['execution_rates'][query_id] = {
-                'query_text': query_total_times[query_id]['query_text'],
+                'query_text': query_text,
                 'data': []
             }
             result['query_metrics']['avg_times'][query_id] = {
-                'query_text': query_total_times[query_id]['query_text'],
+                'query_text': query_text,
                 'data': []
             }
 
-        # Populate time series data
-        for sample in query_history:
-            timestamp = sample.get('timestamp', '')
+            # Fill time series
+            for sample in result['top_queries']:
+                timestamp = sample.get('timestamp', '')
+                query_data = next((q for q in sample.get('queries', [])
+                                 if q.get('queryid') == query_id), None)
 
-            # Initialize all top 5 queries with null for this timestamp
-            for query_id in top_5_query_ids:
                 result['query_metrics']['execution_rates'][query_id]['data'].append({
                     'timestamp': timestamp,
-                    'value': None
+                    'value': query_data.get('calls_per_sec') if query_data else None
                 })
                 result['query_metrics']['avg_times'][query_id]['data'].append({
                     'timestamp': timestamp,
-                    'value': None
+                    'value': query_data.get('avg_exec_time_delta') if query_data else None
                 })
-
-            # Fill in actual values where available
-            if 'queries' in sample:
-                for query in sample['queries']:
-                    query_id = query.get('queryid')
-                    if query_id in top_5_query_ids:
-                        # Find the index for this timestamp
-                        idx = len(result['query_metrics']['execution_rates'][query_id]['data']) - 1
-
-                        # Update execution rate
-                        if 'calls_per_sec' in query:
-                            result['query_metrics']['execution_rates'][query_id]['data'][idx]['value'] = query['calls_per_sec']
-
-                        # Update average time
-                        if 'avg_exec_time_delta' in query:
-                            result['query_metrics']['avg_times'][query_id]['data'][idx]['value'] = query['avg_exec_time_delta']
-
-    # Add system metrics with the same time range limit
-    for metric in ['cpu', 'memory', 'io', 'connections', 'query_efficiency']:
-        if metric in monitoring_data['history']:
-            result['system_metrics'][metric] = list(monitoring_data['history'][metric])[-max_samples:]
-        else:
-            result['system_metrics'][metric] = []
 
     return result

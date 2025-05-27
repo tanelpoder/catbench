@@ -362,11 +362,13 @@ def image_file(animal, filename):
 # Monitoring routes
 @app.route('/monitoring')
 def monitoring_page():
+    """Display the monitoring page."""
     return render_template('monitoring.html')
 
-# API endpoint to get the latest monitoring data
+
 @app.route('/api/monitoring_data')
 def get_monitoring_data():
+    """API endpoint to get the latest monitoring data."""
     interval = request.args.get('interval', 5, type=int)
     time_range = request.args.get('time_range', 5, type=int)
 
@@ -380,6 +382,7 @@ def get_monitoring_data():
     result = monitoring.get_monitoring_data(time_range, max_samples)
 
     return jsonify(result)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

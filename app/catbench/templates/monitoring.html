@@ -51,10 +51,8 @@
             }
             .chart-box {
                 flex: 1;
-                min-width: 300px; /* Adjusted for better layout */
-                max-width: calc(
-                    50% - 10px
-                ); /* Ensure two charts fit in a row */
+                min-width: 300px;
+                max-width: calc(50% - 10px);
                 height: 300px;
                 position: relative;
                 background-color: white;
@@ -104,7 +102,6 @@
                 padding: 5px;
                 border-radius: 3px;
             }
-            /* Style for debug controls */
             .debug-control {
                 margin-left: 20px;
                 padding: 3px 8px;
@@ -112,8 +109,6 @@
                 border-radius: 4px;
                 border: 1px solid #ddd;
             }
-
-            /* Add hover effect to refresh button */
             #refresh-now {
                 cursor: pointer;
                 padding: 5px 10px;
@@ -121,12 +116,9 @@
                 border: 1px solid #ddd;
                 border-radius: 4px;
             }
-
             #refresh-now:hover {
                 background-color: #e0e0e0;
             }
-
-            /* Make sure all chart canvases have proper sizing */
             canvas {
                 width: 100% !important;
                 height: 100% !important;
@@ -238,7 +230,7 @@
 
             // Chart objects
             let queryRateChart, bufferChart, ioChart, connectionsChart;
-            let topQueriesRateChart, topQueriesTimeChart; // Declare for the new charts
+            let topQueriesRateChart, topQueriesTimeChart;
 
             // Reference to interval timer
             let refreshTimer = null;
@@ -285,7 +277,7 @@
                     animation: false,
                     elements: {
                         line: {
-                            tension: 0.1, // Slight tension for smoother lines
+                            tension: 0.1,
                         },
                         point: {
                             radius: 1,
@@ -305,13 +297,13 @@
                     plugins: {
                         legend: { display: true, position: "top" },
                         tooltip: {
-                            mode: "index", // Show tooltips for all datasets at that index
+                            mode: "index",
                             intersect: false,
                         },
                     },
                     interaction: {
                         mode: "nearest",
-                        axis: "x", // Snap to x-axis
+                        axis: "x",
                         intersect: false,
                     },
                 };
@@ -335,6 +327,7 @@
                     },
                     options: commonOptions,
                 });
+
                 const bufferCtx = document
                     .getElementById("buffer-chart")
                     .getContext("2d");
@@ -351,7 +344,7 @@
                                 fill: true,
                             },
                             {
-                                label: "Buffer Reads/sec",
+                                label: "Disk Reads/sec",
                                 data: [],
                                 borderColor: "#DB4437",
                                 backgroundColor: "rgba(219, 68, 55, 0.1)",
@@ -361,6 +354,7 @@
                     },
                     options: commonOptions,
                 });
+
                 const ioCtx = document
                     .getElementById("io-chart")
                     .getContext("2d");
@@ -387,6 +381,7 @@
                     },
                     options: commonOptions,
                 });
+
                 const connectionsCtx = document
                     .getElementById("connections-chart")
                     .getContext("2d");
@@ -407,29 +402,26 @@
                     options: commonOptions,
                 });
 
-                // Top Queries - Execution Rate Chart (Top N from latest interval)
                 const topQueriesRateCtx = document
                     .getElementById("top-queries-rate-chart")
                     .getContext("2d");
                 topQueriesRateChart = new Chart(topQueriesRateCtx, {
                     type: "line",
-                    data: { labels: [], datasets: [] }, // Datasets will be added dynamically
-                    options: { ...commonOptions }, // Spread to avoid commonOptions modification by tooltip later
+                    data: { labels: [], datasets: [] },
+                    options: { ...commonOptions },
                 });
 
-                // Top Queries - Average Execution Time Chart (Top N from latest interval)
                 const topQueriesTimeCtx = document
                     .getElementById("top-queries-time-chart")
                     .getContext("2d");
                 topQueriesTimeChart = new Chart(topQueriesTimeCtx, {
                     type: "line",
-                    data: { labels: [], datasets: [] }, // Datasets will be added dynamically
+                    data: { labels: [], datasets: [] },
                     options: { ...commonOptions },
                 });
             }
 
             function updateQueryTable(topQueriesHistory) {
-                // Renamed parameter for clarity
                 const tableBody = document
                     .getElementById("top-queries-table")
                     .querySelector("tbody");
@@ -491,6 +483,7 @@
                 const maxPoints =
                     (timeRangeMinutes * 60) / refreshIntervalSeconds;
 
+                // Update Query Rate Chart
                 if (data.top_queries && data.top_queries.length > 0) {
                     let queryRateDataPoints = data.top_queries.map((sample) => {
                         let totalRate = 0;
@@ -519,6 +512,32 @@
                     }
                 }
 
+                // Update Buffer Activity chart using database metrics
+                if (
+                    data.system_metrics &&
+                    data.system_metrics.database &&
+                    Array.isArray(data.system_metrics.database)
+                ) {
+                    let dbMetrics = limitArrayLength(
+                        data.system_metrics.database,
+                        maxPoints,
+                    );
+                    if (dbMetrics.length > 0) {
+                        const timestamps = dbMetrics.map(
+                            (d) => d.timestamp || "",
+                        );
+                        bufferChart.data.labels = timestamps;
+                        bufferChart.data.datasets[0].data = dbMetrics.map(
+                            (d) => d.buffer_hits_per_sec || 0
+                        );
+                        bufferChart.data.datasets[1].data = dbMetrics.map(
+                            (d) => d.disk_reads_per_sec || 0
+                        );
+                        bufferChart.update("none");
+                    }
+                }
+
+                // Update I/O Activity chart
                 if (
                     data.system_metrics &&
                     data.system_metrics.io &&
@@ -532,41 +551,18 @@
                         const timestamps = ioMetrics.map(
                             (d) => d.timestamp || "",
                         );
-                        bufferChart.data.labels = timestamps;
-                        bufferChart.data.datasets[0].data = ioMetrics.map(
-                            (d) =>
-                                (typeof d.heap_hit_per_sec === "number"
-                                    ? d.heap_hit_per_sec
-                                    : 0) +
-                                (typeof d.idx_hit_per_sec === "number"
-                                    ? d.idx_hit_per_sec
-                                    : 0),
-                        );
-                        bufferChart.data.datasets[1].data = ioMetrics.map(
-                            (d) =>
-                                (typeof d.heap_read_per_sec === "number"
-                                    ? d.heap_read_per_sec
-                                    : 0) +
-                                (typeof d.idx_read_per_sec === "number"
-                                    ? d.idx_read_per_sec
-                                    : 0),
-                        );
-                        bufferChart.update("none");
                         ioChart.data.labels = timestamps;
                         ioChart.data.datasets[0].data = ioMetrics.map((d) =>
-                            typeof d.idx_read_per_sec === "number"
-                                ? d.idx_read_per_sec
-                                : 0,
+                            d.idx_read_per_sec || 0
                         );
                         ioChart.data.datasets[1].data = ioMetrics.map((d) =>
-                            typeof d.heap_read_per_sec === "number"
-                                ? d.heap_read_per_sec
-                                : 0,
+                            d.heap_read_per_sec || 0
                         );
                         ioChart.update("none");
                     }
                 }
 
+                // Update Connections chart
                 if (
                     data.system_metrics &&
                     data.system_metrics.connections &&
@@ -588,154 +584,63 @@
                     }
                 }
 
-                // Update Top 5 Queries Performance Charts (from latest interval data)
-                if (data.top_queries && data.top_queries.length > 0) {
-                    const latestSample =
-                        data.top_queries[data.top_queries.length - 1];
-                    let topNQueriesForChart = [];
-                    if (
-                        latestSample &&
-                        latestSample.queries &&
-                        Array.isArray(latestSample.queries)
-                    ) {
-                        topNQueriesForChart = latestSample.queries.slice(0, 5);
-                    }
-
-                    const limitedTopQueriesHistory = limitArrayLength(
-                        data.top_queries,
-                        maxPoints,
-                    );
-                    const timestampsForTopN = limitedTopQueriesHistory.map(
-                        (s) => s.timestamp || "",
-                    );
-
-                    const rateChartDatasets = topNQueriesForChart.map(
-                        (topQuery, index) => {
-                            const queryDataPoints =
-                                limitedTopQueriesHistory.map((sample) => {
-                                    const foundQuery = sample.queries
-                                        ? sample.queries.find(
-                                              (q) =>
-                                                  q.queryid ===
-                                                  topQuery.queryid,
-                                          )
-                                        : null;
-                                    return foundQuery &&
-                                        foundQuery.calls_per_sec !== undefined
-                                        ? foundQuery.calls_per_sec
-                                        : null;
+                // Update Top 5 Queries Performance Charts
+                if (data.query_metrics) {
+                    // Update execution rates chart
+                    if (data.query_metrics.execution_rates) {
+                        const datasets = [];
+                        let timestamps = [];
+                        
+                        Object.keys(data.query_metrics.execution_rates).forEach((queryId, index) => {
+                            const queryData = data.query_metrics.execution_rates[queryId];
+                            if (queryData.data && queryData.data.length > 0) {
+                                timestamps = queryData.data.map(d => d.timestamp);
+                                let shortQueryText = queryData.query_text && queryData.query_text.length > 25
+                                    ? queryData.query_text.substring(0, 22) + "..."
+                                    : queryData.query_text || `Query ${queryId}`;
+                                
+                                datasets.push({
+                                    label: shortQueryText,
+                                    data: queryData.data.map(d => d.value),
+                                    borderColor: chartColors[index % chartColors.length],
+                                    backgroundColor: transparentChartColors[index % transparentChartColors.length],
+                                    fill: false,
+                                    tension: 0.1,
                                 });
-                            let shortQueryText =
-                                topQuery.query && topQuery.query.length > 25
-                                    ? topQuery.query.substring(0, 22) + "..."
-                                    : topQuery.query;
-                            shortQueryText =
-                                shortQueryText ||
-                                `QueryID: ${topQuery.queryid}`;
-                            return {
-                                label: shortQueryText,
-                                data: queryDataPoints,
-                                borderColor:
-                                    chartColors[index % chartColors.length],
-                                backgroundColor:
-                                    transparentChartColors[
-                                        index % transparentChartColors.length
-                                    ],
-                                fill: false,
-                                tension: 0.1,
-                            };
-                        },
-                    );
-
-                    const timeChartDatasets = topNQueriesForChart.map(
-                        (topQuery, index) => {
-                            const queryDataPoints =
-                                limitedTopQueriesHistory.map((sample) => {
-                                    const foundQuery = sample.queries
-                                        ? sample.queries.find(
-                                              (q) =>
-                                                  q.queryid ===
-                                                  topQuery.queryid,
-                                          )
-                                        : null;
-                                    return foundQuery &&
-                                        foundQuery.avg_exec_time_delta !==
-                                            undefined
-                                        ? foundQuery.avg_exec_time_delta
-                                        : null;
-                                });
-                            let shortQueryText =
-                                topQuery.query && topQuery.query.length > 25
-                                    ? topQuery.query.substring(0, 22) + "..."
-                                    : topQuery.query;
-                            shortQueryText =
-                                shortQueryText ||
-                                `QueryID: ${topQuery.queryid}`;
-                            return {
-                                label: shortQueryText,
-                                data: queryDataPoints,
-                                borderColor:
-                                    chartColors[index % chartColors.length],
-                                backgroundColor:
-                                    transparentChartColors[
-                                        index % transparentChartColors.length
-                                    ],
-                                fill: false,
-                                tension: 0.1,
-                            };
-                        },
-                    );
-
-                    const tooltipTitleCallback = function (tooltipItems) {
-                        if (tooltipItems.length > 0) {
-                            const datasetIndex = tooltipItems[0].datasetIndex;
-                            if (
-                                topNQueriesForChart[datasetIndex] &&
-                                topNQueriesForChart[datasetIndex].query
-                            ) {
-                                const query =
-                                    topNQueriesForChart[datasetIndex].query;
-                                return query.length > 100
-                                    ? query.substring(0, 97) + "..."
-                                    : query;
                             }
-                        }
-                        return "";
-                    };
-
-                    if (topQueriesRateChart) {
-                        topQueriesRateChart.data.labels = timestampsForTopN;
-                        topQueriesRateChart.data.datasets = rateChartDatasets;
-                        if (topQueriesRateChart.options.plugins.tooltip)
-                            topQueriesRateChart.options.plugins.tooltip.callbacks =
-                                { title: tooltipTitleCallback };
-                        else
-                            topQueriesRateChart.options.plugins.tooltip = {
-                                callbacks: { title: tooltipTitleCallback },
-                            };
+                        });
+                        
+                        topQueriesRateChart.data.labels = timestamps;
+                        topQueriesRateChart.data.datasets = datasets;
                         topQueriesRateChart.update("none");
                     }
-                    if (topQueriesTimeChart) {
-                        topQueriesTimeChart.data.labels = timestampsForTopN;
-                        topQueriesTimeChart.data.datasets = timeChartDatasets;
-                        if (topQueriesTimeChart.options.plugins.tooltip)
-                            topQueriesTimeChart.options.plugins.tooltip.callbacks =
-                                { title: tooltipTitleCallback };
-                        else
-                            topQueriesTimeChart.options.plugins.tooltip = {
-                                callbacks: { title: tooltipTitleCallback },
-                            };
-                        topQueriesTimeChart.update("none");
-                    }
-                } else {
-                    if (topQueriesRateChart) {
-                        topQueriesRateChart.data.labels = [];
-                        topQueriesRateChart.data.datasets = [];
-                        topQueriesRateChart.update("none");
-                    }
-                    if (topQueriesTimeChart) {
-                        topQueriesTimeChart.data.labels = [];
-                        topQueriesTimeChart.data.datasets = [];
+                    
+                    // Update average time chart
+                    if (data.query_metrics.avg_times) {
+                        const datasets = [];
+                        let timestamps = [];
+                        
+                        Object.keys(data.query_metrics.avg_times).forEach((queryId, index) => {
+                            const queryData = data.query_metrics.avg_times[queryId];
+                            if (queryData.data && queryData.data.length > 0) {
+                                timestamps = queryData.data.map(d => d.timestamp);
+                                let shortQueryText = queryData.query_text && queryData.query_text.length > 25
+                                    ? queryData.query_text.substring(0, 22) + "..."
+                                    : queryData.query_text || `Query ${queryId}`;
+                                
+                                datasets.push({
+                                    label: shortQueryText,
+                                    data: queryData.data.map(d => d.value),
+                                    borderColor: chartColors[index % chartColors.length],
+                                    backgroundColor: transparentChartColors[index % transparentChartColors.length],
+                                    fill: false,
+                                    tension: 0.1,
+                                });
+                            }
+                        });
+                        
+                        topQueriesTimeChart.data.labels = timestamps;
+                        topQueriesTimeChart.data.datasets = datasets;
                         topQueriesTimeChart.update("none");
                     }
                 }
@@ -757,7 +662,6 @@
                         const processingStartTime = performance.now();
                         debugLog("Received data:", data);
 
-                        // Pass data.top_queries (which is history) to updateQueryTable
                         updateQueryTable(data.top_queries);
                         updateCharts(data);
 
@@ -766,7 +670,7 @@
                             `Last refreshed: ${now.toLocaleTimeString()}`;
                         const endTime = performance.now();
                         debugLog(
-                            `Workspace time: ${(processingStartTime - refreshStartTime).toFixed(2)}ms, Processing time: ${(endTime - processingStartTime).toFixed(2)}ms`,
+                            `Fetch time: ${(processingStartTime - refreshStartTime).toFixed(2)}ms, Processing time: ${(endTime - processingStartTime).toFixed(2)}ms`,
                         );
                     })
                     .catch((error) => {
@@ -802,7 +706,7 @@
                     .addEventListener("click", refreshData);
                 document
                     .getElementById("time-range")
-                    .addEventListener("change", refreshData); // Refresh data when time range changes
+                    .addEventListener("change", refreshData);
                 document
                     .getElementById("debug-checkbox")
                     .addEventListener("change", function () {
