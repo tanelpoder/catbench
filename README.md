@@ -16,6 +16,8 @@ Here are a few screenshots of the similarity search and recommendation engine ap
 ![Cat similarity search query](/landing/rec-engine-2.webp)
 ![Cat recommendation engine output](/landing/rec-engine-3.webp)
 ![Cat recommendation engine query plan](/landing/rec-engine-4.webp)
+![Cat recommendation engine query plan](/landing/catbench-monitoring-1.webp)
+
 
 ## CatVector 
 
