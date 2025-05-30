@@ -2,5 +2,5 @@ numpy
 torch
 torchvision
 Pillow
-psycopg2
+# psycopg2 # it is better to install this via your OS yum,dnf,apt package managers
 flask
