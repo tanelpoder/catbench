@@ -65,6 +65,8 @@ python scripts/generate_embeddings.py data/PetImages/Cat embeddings/cats.tsv
 python scripts/generate_embeddings.py data/PetImages/Dog embeddings/dogs.tsv
 ```
 
+**NB!** You need to install Postgres and the PgVector extension and the `python3-psycopg2` package using your OS package manager first.
+
 Then load the vectors and other data into the database:
 
 ```
