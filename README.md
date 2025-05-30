@@ -96,7 +96,7 @@ You can now go to `hostname:5000` and browse around:
 
 ### Stress test
 
-* Check the `/scripts/cat_loop.sh` (and `dog_loop.sh`) that call `cat_loop.sql` (and `dog_loop.sql`) under the hood. You can use similar patterns to construct your own stress test queries.
+* Check the `[/scripts/cat_loop.sh](https://github.com/tanelpoder/catbench/blob/main/scripts/cat_loop.sh)` (and `dog_loop.sh`) that call `cat_loop.sql` (and `dog_loop.sql`) under the hood. You can use similar patterns to construct your own stress test queries.
 * You currently need to change the "tpcc" to your database name (if you're not using "tpcc").
 * You can uncomment more `psql` lines to increase concurrency (and hit CTRL+C in terminal to cancel/kill all currently running `psql` loops`
 * I plan to add an UI for this (with query templates) in the future too
