@@ -18,16 +18,6 @@ Here are a few screenshots of the similarity search and recommendation engine ap
 ![Cat recommendation engine query plan](/landing/rec-engine-4.webp)
 ![Cat recommendation engine query plan](/landing/catbench-monitoring-1.webp)
 
-
-## CatVector 
-
-The static embedding vector visualization blog entry and demo videos are here:
-
-* https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps/
-* https://tanelpoder.com/posts/visualizing-embedding-vectors-as-heatmaps-videos/
-
-![Cats Dogs Planes](/landing/cat-dog-plane-embeddings-heatmap-annotated.webp)
-
 ## Installation Steps
 
 25000 cat/dog images are included in this repository. If you want to download aircraft images too, use the `wget` command below. I have tested this on RHEL9 and Ubuntu 24.04 so far. You need to have python and pip installed in your OS for this. For installing Python packages locally with `pip`, you probably want to use a Python virtual environment (venv).
