@@ -13,11 +13,11 @@ DO $$
     l_distances   FLOAT[];
 
   BEGIN
-    SELECT MIN(dogs2.id), MAX(dogs2.id) INTO minid, maxid FROM dogs2;
+    SELECT MIN(newdogs.id), MAX(newdogs.id) INTO minid, maxid FROM newdogs;
     RAISE NOTICE 'minid=% maxid=%', minid, maxid;
     FOR i IN 1..100000 LOOP
         l_id = FLOOR(RANDOM() * (maxid - minid + 1) + minid)::INTEGER;
-        SELECT embedding INTO e FROM dogs2 WHERE id = l_id;
+        SELECT embedding INTO e FROM newdogs WHERE id = l_id;
         start_time := clock_timestamp();
         
         -- Return arrays of of matching files and distances, nearest match first
@@ -32,7 +32,7 @@ DO $$
                 file_name,
                 embedding <-> e as distance
             FROM
-                dogs2
+                newdogs
             WHERE
                 id != l_id -- filter out self-match
             ORDER BY
