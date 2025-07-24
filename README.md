@@ -1,7 +1,7 @@
 # CatBench Vector Search Playground
 _Cat Benchmarking at Scale, finally!_
 
-There are two separate Python apps in this repo:
+There are two separate Python apps in the [app](/tanelpoder/catbench/tree/main/app) directory:
 
 * **CatVector** - a simple static vector heatmap visualization app (no database)
 * **CatBench** - a simple Python/Flask application using Postgres+pgvector similarity search queries (and joins to a regular TPCC schema)
