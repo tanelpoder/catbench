@@ -5,18 +5,16 @@ from math import ceil
 
 import psycopg2
 from psycopg2 import pool
-from flask import Flask, render_template, request, send_from_directory, abort, jsonify
-
-import monitoring
+from flask import Flask, render_template, request, send_from_directory, abort
 
 app = Flask(__name__)
 
-# Configuration (local socket using your OS user for username and dbname by default)
-PG_DB   = None    # DBname defaults to your OS username, or replace with your dbname
-PG_USER = None    # Change to custom username if you don't want to use your local OS username
-PG_PASS = None    # Change to your password if your pg_hba.conf doesn't trust local connections
-PG_HOST = None    # change to your DB instance's hostname if using a remote DB
-PG_PORT = '5432'
+# Default config uses a "tpcc" database on local postgres instance
+PG_DB   = 'tpcc'
+PG_USER = None    # 'tpcc' 
+PG_PASS = None    # 'tpcc'
+PG_HOST = None    # 'localhost'
+PG_PORT = None    # '5432'
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 IMAGE_DIR  = os.path.join(APP_DIR, 'data', 'PetImages')
@@ -55,7 +53,6 @@ def get_gallery_images(page, animal):
         [f for f in os.listdir(animal_dir) if allowed_file(f)],
          key=lambda f: int(os.path.splitext(f)[0])
     )
-
 
     total_images = len(images)
     total_pages = ceil(total_images / ITEMS_PER_PAGE)
@@ -146,7 +143,7 @@ def pet_details(animal, mode, image_name):
     # Define table names based on mode and animal
     if mode == 'identify':               # cat-fraud detection
         source_table  = f"{animal}s"     # cats or dogs
-        compare_table = f"many{animal}s" # manycats/dogs (0..359 degree rotated variants of each)
+        compare_table = f"new{animal}s"  # newcats/dogs (0..359 degree rotated variants of each)
     elif mode == 'crossspecies':
         source_table = f"{animal}s"      # source species table (origcats or origdogs)
         compare_table = "dogs" if animal == "cat" else "cats"
@@ -276,7 +273,7 @@ def reverse_lookup(animal, source_image, compare_image):
             # the original "known" pet in the CRM closely enough
             compare_query = textwrap.dedent(f"""\
                              SELECT embedding
-                             FROM {animal}s
+                             FROM new{animal}s
                              WHERE file_name = %s
                              LIMIT 1""")
 
@@ -295,26 +292,25 @@ def reverse_lookup(animal, source_image, compare_image):
             source_query = textwrap.dedent(f"""\
                               SELECT file_name, embedding, embedding <-> %s::vector AS distance
                               FROM {animal}s
-                              WHERE file_name != %s
                               ORDER BY embedding <-> %s::vector
                               LIMIT 1""")
 
             # Get execution plan for compare image query
-            cur.execute(f"EXPLAIN (ANALYZE,BUFFERS) {source_query}", (compare_embedding, compare_image, compare_embedding))
+            cur.execute(f"EXPLAIN (ANALYZE,BUFFERS) {source_query}", (compare_embedding, compare_embedding))
             query_plans.append({
                 'query': source_query,
                 'plan': '\n'.join([row[0] for row in cur.fetchall()])
             })
 
             # Execute actual compare query
-            cur.execute(source_query, (compare_embedding, compare_image, compare_embedding))
+            cur.execute(source_query, (compare_embedding, compare_embedding))
             closest_match = cur.fetchone()
             closest_file_name = closest_match[0]
             source_embedding = closest_match[1]
             vector_distance = closest_match[2]
 
             # Add information about whether this was a symmetric match (ignoring the image rotation prefix)
-            is_symmetric_match = closest_file_name[4:] == source_image
+            is_symmetric_match = closest_file_name == source_image
 
             # Calculate vector distance
             distance_query = "SELECT %s::vector <-> %s::vector AS distance"
@@ -344,7 +340,6 @@ def reverse_lookup(animal, source_image, compare_image):
                          closest_file_name=closest_file_name)
 
 
-
 @app.route('/images/<animal>/<filename>')
 def image_file(animal, filename):
     if animal not in ['cat', 'dog']:
@@ -359,30 +354,18 @@ def image_file(animal, filename):
 
     return send_from_directory(image_path, filename)
 
-# Monitoring routes
-@app.route('/monitoring')
-def monitoring_page():
-    """Display the monitoring page."""
-    return render_template('monitoring.html')
+# Import monitoring module and register routes
+import monitoring
 
+# Initialize monitoring with database configuration
+monitoring.init_monitoring(PG_DB, PG_USER, PG_PASS, PG_HOST, PG_PORT)
 
-@app.route('/api/monitoring_data')
-def get_monitoring_data():
-    """API endpoint to get the latest monitoring data."""
-    interval = request.args.get('interval', 5, type=int)
-    time_range = request.args.get('time_range', 5, type=int)
+# Register monitoring routes
+app.route('/monitoring')(monitoring.monitoring_page)
+app.route('/api/monitoring_data')(monitoring.get_monitoring_data)
 
-    # Fetch latest monitoring data using the monitoring module
-    monitoring.fetch_latest_monitoring_data(get_db, release_db, interval)
-
-    # Calculate max samples based on time range (in minutes) and interval
-    max_samples = (time_range * 60) // interval
-
-    # Get monitoring data from the module
-    result = monitoring.get_monitoring_data(time_range, max_samples)
-
-    return jsonify(result)
-
+# Start the recall notification listener
+monitoring.start_recall_listener()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
