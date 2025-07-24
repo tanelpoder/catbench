@@ -40,36 +40,32 @@ cd catbench
 pip install -r requirements-catbench.txt
 ```
 
+**NB!** You may need to install Postgres and the PgVector extension _and_ the `python3-psycopg2` package using your OS package manager first, if `pip` doesn't successfully install `psycopg2` on your Linux distro.
+
 The next step generates vector embeddings for the 25000 pet photos included in this repository (using GPU's if cuda/NVIDIA GPUs are available, otherwise CPUs.
-
-Go to catbench app directory:
-
-```
-cd app/catbench
-```
 
 Process the 25000 pet photos and generate their embeddings for loading into postgres:
 
 ```
-python scripts/generate_embeddings.py data/PetImages/Cat embeddings/cats.tsv
-python scripts/generate_embeddings.py data/PetImages/Dog embeddings/dogs.tsv
+python app/catbench/scripts/generate_embeddings.py data/PetImages/Cat embeddings/cats.tsv
+python app/catbench/scripts/generate_embeddings.py data/PetImages/Dog embeddings/dogs.tsv
 ```
 
-**NB!** You may need to install Postgres and the PgVector extension _and_ the `python3-psycopg2` package using your OS package manager first, if `pip` doesn't successfully install `psycopg2` on your Linux distro.
-
-Then load the vectors and other data into the database:
+This may take a while. Then load the vectors and other OLTP data into the database:
 
 ```
-gunzip scripts/create_tpcc_tables.sql.gz
-psql -f scripts/create_tpcc_tables.sql 
-psql -f scripts/create_catbench_tables.sql 
-psql -f scripts/create_recommendation_schema.sql 
+gunzip  app/catbench/scripts/create_tpcc_tables.sql.gz
+psql -f app/catbench/scripts/create_tpcc_tables.sql 
+psql -f app/catbench/scripts/create_catbench_tables.sql 
+psql -f app/catbench/scripts/create_recommendation_schema.sql 
 ```
 
 If you're using a local Postgres instance that allows logging in as `tpcc` user without a password, no action needed. Otherwise open the `catbench.py` file to change your Postgres user/pass settings if you are not using a default local connection. And then run the app:
 
 ```
-python catbench.py
+cd app/catbench
+
+python3 catbench.py
 ```
 
 You can now go to `hostname:5000` and browse around:
