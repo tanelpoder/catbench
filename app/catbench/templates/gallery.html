@@ -4,69 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .nav-link {
-            text-decoration: none;
-            color: #007bff;
-            padding: 5px 10px;
-        }
-        .gallery {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-around;
-            gap: 20px;
-        }
-        .image-item {
-            text-align: center;
-            width: 200px;
-        }
-        .image-item img {
-            width: 200px;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 4px;
-            transition: transform 0.2s;
-        }
-        .image-item img:hover {
-            transform: scale(1.05);
-        }
-        .image-item p {
-            margin: 5px 0;
-            color: #666;
-            font-size: 0.9em;
-            word-break: break-all;
-        }
-        .pagination {
-            margin-top: 20px;
-            text-align: center;
-        }
-        .pagination a {
-            text-decoration: none;
-            color: #007bff;
-            padding: 5px 10px;
-        }
-        .pagination span {
-            margin: 0 10px;
-        }
-        .warning {
-            margin-bottom: 20px;
-            color: blue;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/catbench.css') }}">
 </head>
-<body>
+<body class="container">
     <div class="header">
         <a href="{{ url_for('landing_page') }}" class="nav-link">← Back to Home</a>
         <h1>{{ title }}</h1>
@@ -75,9 +16,7 @@
 
     {% if mode == 'identify' %}
     <div class="warning">
-        <em>The reverse lookup for "fraud detection" does not work in this version.
-            I will publish it in the next release and it will require about 500 GB of disk 
-            space, due to all the rotated image versions of the same pets and their respective embedding vectors.</em>
+        <em>The reverse lookup for "fraud detection" works by doing a similarity search of an incoming "new cat" photo (that is a 1..360 degrees rotated variant of some existing customer's profile pic) and then comparing the photo file names to see if the new photo actually is a rotated variant of the existing customer profile pic found.</em>
     </div>
     {% endif %}
     

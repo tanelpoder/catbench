@@ -4,34 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fraud Detection Reverse Check - {{ animal|title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/catbench.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .nav-link {
-            text-decoration: none;
-            color: #007bff;
-            padding: 5px 10px;
-        }
-        .comparison-container {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            margin: 20px 0;
-            gap: 20px;
-        }
+        /* Page-specific overrides */
         .image-box {
-            text-align: center;
             flex: 1;
             min-width: 300px;
             max-width: 500px;
@@ -39,8 +17,6 @@
         .image-box img {
             max-width: 100%;
             height: auto;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .image-label {
             font-size: 1.2em;
@@ -52,17 +28,6 @@
             text-align: center;
             padding: 20px;
             margin: 20px 0;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-        .distance-value {
-            font-size: 1.5em;
-            color: #007bff;
-            font-weight: bold;
-        }
-        .query-monitoring {
-            margin-top: 40px;
-            padding: 20px;
             background-color: #f8f9fa;
             border-radius: 8px;
         }
@@ -79,48 +44,18 @@
             color: #333;
         }
         .query-text pre {
-            margin: 0;
-            padding: 1em;
-            border-radius: 4px;
-            max-height: 400px;
-            overflow: auto;
             background-color: #f5f7ff !important;
         }
     </style>
 </head>
-<body>
+<body class="container">
     <div class="header">
         <a href="{{ url_for('identify_' + animal + '_gallery') }}" class="nav-link">← Back to Gallery</a>
         <h1>Fraud Detection Reverse Check - {{ animal|title }}</h1>
         <a href="{{ url_for('landing_page') }}" class="nav-link">Home</a>
     </div>
 
-    <div class="comparison-container">
-        <div class="image-box">
-            <div class="image-label">Checked new image:</div>
-            <img src="{{ url_for('image_file', animal=animal, filename=compare_image) }}" 
-                 alt="Source {{ animal }}">
-            <p>{{ compare_image }}</p>
-        </div>
-
-        <div class="image-box">
-            <div class="image-label">Against known image:</div>
-            <img src="{{ url_for('image_file', animal=animal, filename=source_image) }}" 
-                 alt="Source {{ animal }}">
-            <p>{{ source_image }}</p>
-        </div>
-
-        <div class="image-box">
-            <div class="image-label">Found closest image:</div>
-            <img src="{{ url_for('image_file', animal=animal, filename=closest_file_name) }}" 
-                 alt="Compare {{ animal }}">
-            <p>{{ closest_file_name }}</p>
-        </div>
-    </div>
-
     <div class="distance-display">
-        <h2>Vector Distance</h2>
-        <div class="distance-value">{{ distance }}</div>
         {% if is_symmetric_match %}
         <div style="color: #28a745; margin-top: 10px;">
             ✓ Symmetric Match: A variation of the known image is also the closest match when searching in reverse
@@ -134,6 +69,31 @@
             Found "{{ closest_file_name }}" instead of a variation of "{{ source_image }}"
         </div>
         {% endif %}
+        <h2>Vector Distance</h2>
+        <div class="distance-value">{{ distance }}</div>
+    </div>
+
+    <div class="comparison-container">
+        <div class="image-box">
+            <div class="image-label">New incoming customer photo:</div>
+            <img src="{{ url_for('image_file', animal=animal, filename=compare_image) }}" 
+                 alt="Source {{ animal }}">
+            <p>{{ compare_image }}</p>
+        </div>
+
+        <div class="image-box">
+            <div class="image-label">Known customer profile pic:</div>
+            <img src="{{ url_for('image_file', animal=animal, filename=source_image) }}" 
+                 alt="Source {{ animal }}">
+            <p>{{ source_image }}</p>
+        </div>
+
+        <div class="image-box">
+            <div class="image-label">Found closest image:</div>
+            <img src="{{ url_for('image_file', animal=animal, filename=closest_file_name) }}" 
+                 alt="Compare {{ animal }}">
+            <p>{{ closest_file_name }}</p>
+        </div>
     </div>
 
     <div class="query-monitoring">
