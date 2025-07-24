@@ -1,4 +1,4 @@
-# CatBench Vector Search Playground
+#CatBench Vector Search Playground
 _Cat Benchmarking at Scale, finally!_
 
 There are two separate Python apps in the [app](https://github.com/tanelpoder/catbench/tree/main/app) directory:
@@ -42,6 +42,14 @@ pip install -r requirements-catbench.txt
 
 The next step generates vector embeddings for the 25000 pet photos included in this repository (using GPU's if cuda/NVIDIA GPUs are available, otherwise CPUs.
 
+Go to catbench app directory:
+
+```
+cd app/catbench
+```
+
+Process the 25000 pet photos and generate their embeddings for loading into postgres:
+
 ```
 python scripts/generate_embeddings.py data/PetImages/Cat embeddings/cats.tsv
 python scripts/generate_embeddings.py data/PetImages/Dog embeddings/dogs.tsv
@@ -56,12 +64,6 @@ gunzip scripts/create_tpcc_tables.sql.gz
 psql -f scripts/create_tpcc_tables.sql 
 psql -f scripts/create_catbench_tables.sql 
 psql -f scripts/create_recommendation_schema.sql 
-```
-
-Now go to the CatBench app directory:
-
-```
-cd app/catbench
 ```
 
 If you're using a local Postgres instance that allows logging in as `tpcc` user without a password, no action needed. Otherwise open the `catbench.py` file to change your Postgres user/pass settings if you are not using a default local connection. And then run the app:
