@@ -1,0 +1,230 @@
+/* Styles specific to the monitoring dashboard */
+
+/* Control panel */
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.controls label {
+    margin-right: 5px;
+}
+
+.controls select {
+    margin-right: 10px;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Refresh controls */
+#refresh-now {
+    cursor: pointer;
+    padding: 5px 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+#refresh-now:hover {
+    background-color: #e0e0e0;
+}
+
+.refresh-status {
+    color: #777;
+    font-style: italic;
+    margin-left: 10px;
+}
+
+/* Debug control */
+.debug-control {
+    margin-left: 20px;
+    padding: 3px 8px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.debug-control input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+/* Chart layouts */
+.chart-container {
+    margin-bottom: 40px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chart-container h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.chart-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.chart-box {
+    flex: 1;
+    min-width: 300px;
+    height: 300px;
+    position: relative;
+    background-color: white;
+    padding: 15px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chart-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+    text-align: center;
+}
+
+/* Chart canvas sizing */
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* SQL query display in tables */
+.sql-query {
+    max-height: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: monospace;
+    white-space: nowrap;
+    font-size: 0.85em;
+    color: #555;
+    background-color: #f9f9f9;
+    padding: 4px 6px;
+    border-radius: 3px;
+    cursor: help;
+    display: block;
+}
+
+/* Custom scrollbar for SQL queries */
+.sql-query::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.sql-query::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.sql-query::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.sql-query::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Table responsive wrapper */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Top queries table specific styling */
+#top-queries-table {
+    table-layout: fixed;
+    width: 100%;
+    min-width: 1000px;
+}
+
+#top-queries-table th:first-child,
+#top-queries-table td:first-child {
+    width: 35%;
+    min-width: 250px;
+    max-width: 400px;
+}
+
+#top-queries-table th:not(:first-child) {
+    width: auto;
+    text-align: right;
+    min-width: 70px;
+}
+
+#top-queries-table td:not(:first-child) {
+    width: auto;
+    white-space: nowrap;
+    text-align: right;
+}
+
+#top-queries-table td {
+    padding: 6px 8px;
+    font-size: 0.85em;
+}
+
+#top-queries-table th {
+    padding: 8px 4px;
+    font-size: 0.85em;
+    white-space: normal;
+    vertical-align: bottom;
+    line-height: 1.2;
+    word-break: break-word;
+    hyphens: auto;
+}
+
+/* Make numeric columns more compact */
+#top-queries-table .numeric {
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+/* Specific handling for longer column headers */
+#top-queries-table th:nth-child(5),
+#top-queries-table th:nth-child(6),
+#top-queries-table th:nth-child(7),
+#top-queries-table th:nth-child(8) {
+    min-width: 80px;
+    max-width: 100px;
+}
+
+/* Checkbox styling for blocks toggle */
+#blocks-per-call {
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+#blocks-per-call + label {
+    cursor: pointer;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    .controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .controls > div {
+        margin-bottom: 10px;
+    }
+    
+    .chart-row {
+        flex-direction: column;
+    }
+    
+    .chart-box {
+        min-width: 100%;
+        margin-bottom: 20px;
+    }
+}
