@@ -11,6 +11,9 @@ The static embedding vector visualization blog entry and demo videos are here:
 ## CatVector install instructions
 
 ```
+git clone https://github.com/tanelpoder/catbench
+cd catbench
+
 pip install -r requirements-catvector.txt
 
 # if you want airplane images 
