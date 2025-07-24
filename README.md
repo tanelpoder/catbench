@@ -27,27 +27,6 @@ Here are a few screenshots of the similarity search and recommendation engine ap
 
 Download and set up CatBench:
 
-### Static CatVector app that doesn't require a database
-
-```
-git clone https://github.com/tanelpoder/catbench
-cd catbench
-
-pip install -r requirements-catvector.txt
-
-# if you want airplane images
-cd data
-wget https://www.robots.ox.ac.uk/~vgg/data/fgvc-aircraft/archives/fgvc-aircraft-2013b.tar.gz
-tar xf fgvc-aircraft-2013b.tar.gz
-
-# run the app
-cd ../app/catvector
-python catvector.py
-```
-Then go to `hostname:8000`:
-
-![CatBench Normalized](/landing/catbench-normalized.png)
-
 ### Interactive CatBench application that requires a Postgres database and loading data
 
 Make sure that you have a Postgres database (with pgvector extension) running and accessible and change the `psql` commands below to include your username/password if you are not using a default local connection:
@@ -55,12 +34,20 @@ Make sure that you have a Postgres database (with pgvector extension) running an
 In the `catbench` repo root directory, run this to generate embedding vectors from the 25000 pet images (this uses PyTorch which automatically runs on CPUs if you don't have a GPU available).
 
 ```
+git clone https://github.com/tanelpoder/catbench
+cd catbench
+
 pip install -r requirements-catbench.txt
+```
+
+The next step generates vector embeddings for the 25000 pet photos included in this repository (using GPU's if cuda/NVIDIA GPUs are available, otherwise CPUs.
+
+```
 python scripts/generate_embeddings.py data/PetImages/Cat embeddings/cats.tsv
 python scripts/generate_embeddings.py data/PetImages/Dog embeddings/dogs.tsv
 ```
 
-**NB!** You need to install Postgres and the PgVector extension and the `python3-psycopg2` package using your OS package manager first.
+**NB!** You may need to install Postgres and the PgVector extension _and_ the `python3-psycopg2` package using your OS package manager first, if `pip` doesn't successfully install `psycopg2` on your Linux distro.
 
 Then load the vectors and other data into the database:
 
@@ -77,7 +64,7 @@ Now go to the CatBench app directory:
 cd app/catbench
 ```
 
-Open the `catbench.py` file to change your Postgres user/pass settings if you are not using a default local connection. And then run the app:
+If you're using a local Postgres instance that allows logging in as `tpcc` user without a password, no action needed. Otherwise open the `catbench.py` file to change your Postgres user/pass settings if you are not using a default local connection. And then run the app:
 
 ```
 python catbench.py
@@ -89,10 +76,9 @@ You can now go to `hostname:5000` and browse around:
 
 ### Stress test
 
-* Check the [scripts/cat_loop.sh](https://github.com/tanelpoder/catbench/blob/main/scripts/cat_loop.sh) (and `dog_loop.sh`) that call `cat_loop.sql` (and `dog_loop.sql`) under the hood. You can use similar patterns to construct your own stress test queries.
+* Check the [app/catbench/scripts/](https://github.com/tanelpoder/catbench/blob/main/scripts/) directory and run `cat_loop.sh` or `cat_loop_wit_recall.sh` scripts in there (the same for dogs). These shell scripts call similarly named `.sql` scripts under the hood, look inside them to see how they work. You can use similar patterns to construct your own stress test queries.
 * You currently need to change the "tpcc" to your database name (if you're not using "tpcc").
 * You can uncomment more `psql` lines to increase concurrency (and hit CTRL+C in terminal to cancel/kill all currently running `psql` loops`
-* I plan to add an UI for this (with query templates) in the future too
 
 ### Other
 
