@@ -3,65 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CatBench v0.2</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
-        }
-        .species-section {
-            margin: 40px 0;
-            padding: 20px;
-            border-radius: 8px;
-            background-color: #f8f9fa;
-        }
-        .options {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-        .option {
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            width: 250px;
-            margin: 10px;
-            background-color: white;
-        }
-        .option h2, .option h3 {
-            color: #333;
-        }
-        .option p {
-            color: #666;
-            margin: 15px 0;
-        }
-        .option a {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-        }
-        .option a:hover {
-            background-color: #0056b3;
-        }
-        .cross-species-section {
-            margin: 40px 0;
-            padding: 20px;
-            background-color: #e3f2fd;
-            border-radius: 8px;
-        }
-        .footer-comment {
-            color: gray;
-        }
-    </style>
+    <title>CatBench v0.3</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/catbench.css') }}">
 </head>
-<body>
+<body class="text-center container-1000">
     <h1>CatBench Vector Search Playground</h1>
     <p><a href="https://github.com/tanelpoder/catbench">GitHub</a> | <a href="https://tanelpoder.com">Blog</a></p>
     
@@ -71,19 +17,19 @@
             <div class="option">
                 <h3>Cat Recommendations</h3>
                 <p>Find similar cat images based on visual features and patterns</p>
-                <a href="{{ url_for('similar_cat_gallery') }}">Go to Recommendations</a>
+                <a href="{{ url_for('similar_cat_gallery') }}" class="btn">Go to Recommendations</a>
             </div>
 
             <div class="option">
                 <h3>Cat-fraud Detection</h3>
                 <p>Find mistakes in cat detection via reverse lookups</p>
-                <a href="{{ url_for('identify_cat_gallery') }}">Go to Detection</a>
+                <a href="{{ url_for('identify_cat_gallery') }}" class="btn">Go to Detection</a>
             </div>
             
             <div class="option">
                 <h3>Cat-like Dogs</h3>
                 <p>Find dogs that look similar to a chosen cat</p>
-                <a href="{{ url_for('catlike_dogs_gallery') }}">Find Cat-like Dogs</a>
+                <a href="{{ url_for('catlike_dogs_gallery') }}" class="btn">Find Cat-like Dogs</a>
             </div>
             
         </div>
@@ -95,27 +41,38 @@
             <div class="option">
                 <h3>Dog Recommendations</h3>
                 <p>Find similar dog images based on visual features and patterns</p>
-                <a href="{{ url_for('similar_dog_gallery') }}">Go to Recommendations</a>
+                <a href="{{ url_for('similar_dog_gallery') }}" class="btn">Go to Recommendations</a>
             </div>
 
             <div class="option">
                 <h3>Dog-fraud Detection</h3>
                 <p>Identify outlier dog images using a reverse lookup system</p>
-                <a href="{{ url_for('identify_dog_gallery') }}">Go to Detection</a>
+                <a href="{{ url_for('identify_dog_gallery') }}" class="btn">Go to Detection</a>
             </div>
             
             <div class="option">
                 <h3>Dog-like Cats</h3>
                 <p>Find cats that look similar to a chosen dog</p>
-                <a href="{{ url_for('doglike_cats_gallery') }}">Find Dog-like Cats</a>
+                <a href="{{ url_for('doglike_cats_gallery') }}" class="btn">Find Dog-like Cats</a>
             </div>
         </div>
     </div>
 
   <br/><br/><br/><br/>
 
+  <div class="species-section" style="background-color: #e8f5e9;">
+      <h2>Database Monitoring</h2>
+      <div class="options">
+          <div class="option">
+              <h3>Performance Monitoring</h3>
+              <p>Monitor Postgres query performance, resource usage, and system metrics in real-time</p>
+              <a href="{{ url_for('monitoring_page') }}" class="btn" style="background-color: #43a047;">Go to Monitoring</a>
+          </div>
+      </div>
+  </div>
+
   <footer>
-    <p>CatBench v0.2</p>
+    <p>CatBench v0.3</p>
     <p>&copy; 2024-2038 <a href="https://tanelpoder.com/">Tanel Poder</a></p>
     <p class="footer-comment"><em>All included images are from Microsoft's Kaggle <a href="https://www.microsoft.com/en-us/download/details.aspx?id=54765">Cats and Dogs</a> dataset</em></p>
   </footer>

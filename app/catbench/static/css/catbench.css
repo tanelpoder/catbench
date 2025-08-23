@@ -1,0 +1,306 @@
+/* Styles specific to the CatBench application */
+
+/* Landing page styles */
+.species-section {
+    margin: 40px 0;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+.cross-species-section {
+    margin: 40px 0;
+    padding: 20px;
+    background-color: #e3f2fd;
+    border-radius: 8px;
+}
+
+.options {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.option {
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    width: 250px;
+    margin: 10px;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.option h2, .option h3 {
+    color: #333;
+    margin-top: 0;
+}
+
+.option p {
+    color: #666;
+    margin: 15px 0;
+}
+
+.footer-comment {
+    color: gray;
+    margin-top: 40px;
+}
+
+/* Gallery styles */
+.gallery {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    gap: 20px;
+}
+
+.image-item {
+    text-align: center;
+    width: 200px;
+}
+
+.image-item img {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 4px;
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+
+.image-item img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.image-item p {
+    margin: 5px 0;
+    color: #666;
+    font-size: 0.9em;
+    word-break: break-all;
+}
+
+/* Pagination */
+.pagination {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.pagination a {
+    text-decoration: none;
+    color: #007bff;
+    padding: 5px 10px;
+    margin: 0 2px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.pagination a:hover {
+    background-color: #f8f9fa;
+}
+
+.pagination span {
+    margin: 0 10px;
+}
+
+/* Warning messages */
+.warning {
+    margin-bottom: 20px;
+    color: blue;
+    font-style: italic;
+}
+
+/* Pet details page */
+.main-image-container {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.main-image {
+    width: 400px;
+/*  height: 400px; */
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.similar-images {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    gap: 15px;
+}
+
+.similar-image-item {
+    text-align: center;
+    width: 150px;
+}
+
+.similar-image-item img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 4px;
+    transition: transform 0.2s;
+}
+
+.similar-image-item img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.distance {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Purchase analysis section */
+.purchase-analysis {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.purchase-analysis h3 {
+    margin-top: 0;
+}
+
+.purchase-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    background-color: white;
+}
+
+.purchase-table th,
+.purchase-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.purchase-table th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+/* Cross-species note */
+.cross-species-note {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #ffe6e6;
+    border-radius: 4px;
+    font-style: italic;
+}
+
+/* Query monitoring section */
+.query-monitoring {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+}
+
+.query-monitoring h3 {
+    margin-top: 0;
+}
+
+.query-plan {
+    margin-bottom: 20px;
+}
+
+.query-text {
+    background-color: #f8f9fa;
+    padding: 10px;
+    margin: 10px 0;
+    font-family: monospace;
+    font-size: 0.9em;
+    overflow-x: auto;
+/*  white-space: pre-wrap; */
+}
+
+/* Reverse lookup page */
+.comparison-container {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.image-box {
+    text-align: center;
+    margin: 20px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.image-box h3 {
+    margin-top: 0;
+}
+
+.image-box img {
+    width: 300px;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.distance-section {
+    text-align: center;
+    padding: 20px;
+    background-color: #e8f5e9;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.distance-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.match-symmetric {
+    color: green;
+    font-weight: bold;
+}
+
+.match-asymmetric {
+    color: red;
+    font-weight: bold;
+}
+
+/* Code display styles (for use with Prism.js) */
+pre[class*="language-"] {
+    border-radius: 4px;
+    margin: 10px 0;
+ /* max-height: 400px; */
+    overflow: auto;
+}
+
+code[class*="language-"] {
+    font-size: 0.9em;
+}
+
+/* Custom scrollbar for code blocks */
+pre::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+pre::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+pre::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}

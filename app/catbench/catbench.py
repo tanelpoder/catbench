@@ -9,12 +9,12 @@ from flask import Flask, render_template, request, send_from_directory, abort
 
 app = Flask(__name__)
 
-# Configuration
-PG_DB   = None    # DBname defaults to your OS username, or replace with your dbname
-PG_USER = None    # Change to custom username if you don't want to use your local OS username
-PG_PASS = None    # Change to your password if your pg_hba.conf doesn't trust local connections
-PG_HOST = "localhost" # change to your DB instance's hostname if using a remote DB
-PG_PORT = "5432"
+# Default config uses a "tpcc" database on local postgres instance
+PG_DB   = 'tpcc'
+PG_USER = None    # 'tpcc' 
+PG_PASS = None    # 'tpcc'
+PG_HOST = None    # 'localhost'
+PG_PORT = None    # '5432'
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 IMAGE_DIR  = os.path.join(APP_DIR, 'data', 'PetImages')
@@ -47,30 +47,29 @@ def landing_page():
 
 def get_gallery_images(page, animal):
     animal_dir = os.path.join(IMAGE_DIR, animal.capitalize())
-    
+
     # list the gallery images by their filename numeric part for now
     images = sorted(
         [f for f in os.listdir(animal_dir) if allowed_file(f)],
          key=lambda f: int(os.path.splitext(f)[0])
     )
 
-    
     total_images = len(images)
     total_pages = ceil(total_images / ITEMS_PER_PAGE)
-    
+
     start_idx = (page - 1) * ITEMS_PER_PAGE
     end_idx = start_idx + ITEMS_PER_PAGE
     paginated_images = images[start_idx:end_idx]
-            
+
     return paginated_images, total_pages
 
 @app.route('/identify/cat')
 def identify_cat_gallery():
     page = request.args.get('page', 1, type=int)
     paginated_images, total_pages = get_gallery_images(page, 'cat')
-    return render_template('gallery.html', 
-                         images=paginated_images, 
-                         page=page, 
+    return render_template('gallery.html',
+                         images=paginated_images,
+                         page=page,
                          total_pages=total_pages,
                          mode='identify',
                          animal='cat',
@@ -80,9 +79,9 @@ def identify_cat_gallery():
 def similar_cat_gallery():
     page = request.args.get('page', 1, type=int)
     paginated_images, total_pages = get_gallery_images(page, 'cat')
-    return render_template('gallery.html', 
-                         images=paginated_images, 
-                         page=page, 
+    return render_template('gallery.html',
+                         images=paginated_images,
+                         page=page,
                          total_pages=total_pages,
                          mode='similar',
                          animal='cat',
@@ -92,9 +91,9 @@ def similar_cat_gallery():
 def identify_dog_gallery():
     page = request.args.get('page', 1, type=int)
     paginated_images, total_pages = get_gallery_images(page, 'dog')
-    return render_template('gallery.html', 
-                         images=paginated_images, 
-                         page=page, 
+    return render_template('gallery.html',
+                         images=paginated_images,
+                         page=page,
                          total_pages=total_pages,
                          mode='identify',
                          animal='dog',
@@ -104,9 +103,9 @@ def identify_dog_gallery():
 def similar_dog_gallery():
     page = request.args.get('page', 1, type=int)
     paginated_images, total_pages = get_gallery_images(page, 'dog')
-    return render_template('gallery.html', 
-                         images=paginated_images, 
-                         page=page, 
+    return render_template('gallery.html',
+                         images=paginated_images,
+                         page=page,
                          total_pages=total_pages,
                          mode='similar',
                          animal='dog',
@@ -140,18 +139,18 @@ def doglike_cats_gallery():
 def pet_details(animal, mode, image_name):
     if not allowed_file(image_name) or animal not in ['cat', 'dog']:
         abort(404)
-    
+
     # Define table names based on mode and animal
     if mode == 'identify':               # cat-fraud detection
         source_table  = f"{animal}s"     # cats or dogs
-        compare_table = f"many{animal}s" # manycats/dogs (0..359 degree rotated variants of each)
+        compare_table = f"new{animal}s"  # newcats/dogs (0..359 degree rotated variants of each)
     elif mode == 'crossspecies':
         source_table = f"{animal}s"      # source species table (origcats or origdogs)
         compare_table = "dogs" if animal == "cat" else "cats"
     else:                                # similar mode
         source_table = f"{animal}s"      # cats or dogs
         compare_table = source_table     # same table for comparison
-    
+
     conn = get_db()
     query_plans = []
     try:
@@ -163,7 +162,7 @@ def pet_details(animal, mode, image_name):
                 'query': embedding_query,
                 'plan': '\n'.join([row[0] for row in cur.fetchall()])
             })
-            
+
             # Execute the same query to get the data
             cur.execute(embedding_query, (f"{image_name}",))
             embedding = cur.fetchone()[0]
@@ -171,7 +170,7 @@ def pet_details(animal, mode, image_name):
             # Second query: Get similar images
             if mode == 'similar':
                 similarity_query = textwrap.dedent(f"""\
-                                     SELECT file_name, embedding <-> %s::vector AS distance 
+                                     SELECT file_name, embedding <-> %s::vector AS distance
                                      FROM {compare_table}
                                      WHERE file_name != %s
                                      ORDER BY embedding <-> %s::vector
@@ -179,7 +178,7 @@ def pet_details(animal, mode, image_name):
                 params = (embedding, image_name, embedding)
             else:
                 similarity_query = textwrap.dedent(f"""\
-                                     SELECT file_name, embedding <-> %s::vector AS distance 
+                                     SELECT file_name, embedding <-> %s::vector AS distance
                                      FROM {compare_table}
                                      ORDER BY embedding <-> %s::vector
                                      LIMIT 20""")
@@ -191,7 +190,7 @@ def pet_details(animal, mode, image_name):
                 'query': similarity_query,
                 'plan': '\n'.join([row[0] for row in cur.fetchall()])
             })
-            
+
             # Execute actual similarity query
             cur.execute(similarity_query, params)
             results = cur.fetchall()
@@ -217,7 +216,7 @@ def pet_details(animal, mode, image_name):
                         similar_customers sc,
                         customer_top_items t
                     WHERE
-                        sc.c_id = t.c_id  
+                        sc.c_id = t.c_id
                     AND sc.w_id = t.c_w_id
                     AND sc.d_id = t.c_d_id
                     GROUP BY
@@ -228,7 +227,7 @@ def pet_details(animal, mode, image_name):
                         total_spent DESC
                     LIMIT 10
                 """)
-                
+
                 try:
                     # Get execution plan and metrics for purchase analysis
                     cur.execute(f"EXPLAIN (ANALYZE,BUFFERS) {purchase_query}", (embedding,))
@@ -236,7 +235,7 @@ def pet_details(animal, mode, image_name):
                         'query': purchase_query,
                         'plan': '\n'.join([row[0] for row in cur.fetchall()])
                     })
-                    
+
                     # Re-run the same query to get its output data
                     cur.execute(purchase_query, (embedding,))
                     purchase_analysis = cur.fetchall()
@@ -247,11 +246,11 @@ def pet_details(animal, mode, image_name):
 
     finally:
         release_db(conn)
-    
+
     similar_images = [{"filename": result[0], "distance": f"{result[1]:.4f}"} for result in results]
-            
-    return render_template('pet_details.html', 
-                         main_image=image_name, 
+
+    return render_template('pet_details.html',
+                         main_image=image_name,
                          similar_images=similar_images,
                          mode=mode,
                          animal=animal,
@@ -265,73 +264,72 @@ def pet_details(animal, mode, image_name):
 def reverse_lookup(animal, source_image, compare_image):
     if not allowed_file(source_image) or not allowed_file(compare_image) or animal not in ['cat', 'dog']:
         abort(404)
-    
+
     conn = get_db()
     query_plans = []
     try:
         with conn.cursor() as cur:
-            # Get embeddings for compare_image now to see if it actually matches 
+            # Get embeddings for compare_image now to see if it actually matches
             # the original "known" pet in the CRM closely enough
             compare_query = textwrap.dedent(f"""\
-                             SELECT embedding 
-                             FROM {animal}s 
-                             WHERE file_name = %s 
+                             SELECT embedding
+                             FROM new{animal}s
+                             WHERE file_name = %s
                              LIMIT 1""")
-            
+
             # Get incoming pic execution plan and stats first
             cur.execute(f"EXPLAIN (ANALYZE,BUFFERS) {compare_query}", (compare_image,))
             query_plans.append({
                 'query': compare_query,
                 'plan': '\n'.join([row[0] for row in cur.fetchall()])
             })
-            
+
             # Re-run the incoming pic query to get the output
             cur.execute(compare_query, (compare_image,))
             compare_embedding = cur.fetchone()[0]
-            
+
             # Now query for closest match from existing known cat-customers using vector similarity
             source_query = textwrap.dedent(f"""\
                               SELECT file_name, embedding, embedding <-> %s::vector AS distance
-                              FROM {animal}s 
-                              WHERE file_name != %s
+                              FROM {animal}s
                               ORDER BY embedding <-> %s::vector
                               LIMIT 1""")
-            
+
             # Get execution plan for compare image query
-            cur.execute(f"EXPLAIN (ANALYZE,BUFFERS) {source_query}", (compare_embedding, compare_image, compare_embedding))
+            cur.execute(f"EXPLAIN (ANALYZE,BUFFERS) {source_query}", (compare_embedding, compare_embedding))
             query_plans.append({
                 'query': source_query,
                 'plan': '\n'.join([row[0] for row in cur.fetchall()])
             })
-            
+
             # Execute actual compare query
-            cur.execute(source_query, (compare_embedding, compare_image, compare_embedding))
+            cur.execute(source_query, (compare_embedding, compare_embedding))
             closest_match = cur.fetchone()
             closest_file_name = closest_match[0]
             source_embedding = closest_match[1]
             vector_distance = closest_match[2]
-            
+
             # Add information about whether this was a symmetric match (ignoring the image rotation prefix)
-            is_symmetric_match = closest_file_name[4:] == source_image
-            
+            is_symmetric_match = closest_file_name == source_image
+
             # Calculate vector distance
             distance_query = "SELECT %s::vector <-> %s::vector AS distance"
-            
+
             # Get execution plan for distance calculation
-            cur.execute(f"EXPLAIN (ANALYZE,BUFFERS) {distance_query}", 
+            cur.execute(f"EXPLAIN (ANALYZE,BUFFERS) {distance_query}",
                        (source_embedding, compare_embedding))
             query_plans.append({
                 'query': distance_query,
                 'plan': '\n'.join([row[0] for row in cur.fetchall()])
             })
-            
+
             # Execute actual distance calculation
             cur.execute(distance_query, (compare_embedding, source_embedding))
             distance = cur.fetchone()[0]
-            
+
     finally:
         release_db(conn)
-    
+
     return render_template('reverse_lookup.html',
                          source_image=source_image,
                          compare_image=compare_image,
@@ -340,7 +338,6 @@ def reverse_lookup(animal, source_image, compare_image):
                          query_plans=query_plans,
                          is_symmetric_match=is_symmetric_match,
                          closest_file_name=closest_file_name)
-
 
 
 @app.route('/images/<animal>/<filename>')
@@ -357,6 +354,18 @@ def image_file(animal, filename):
 
     return send_from_directory(image_path, filename)
 
+# Import monitoring module and register routes
+import monitoring
+
+# Initialize monitoring with database configuration
+monitoring.init_monitoring(PG_DB, PG_USER, PG_PASS, PG_HOST, PG_PORT)
+
+# Register monitoring routes
+app.route('/monitoring')(monitoring.monitoring_page)
+app.route('/api/monitoring_data')(monitoring.get_monitoring_data)
+
+# Start the recall notification listener
+monitoring.start_recall_listener()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -4,83 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ animal|title }} Image: {{ main_image }}</title>
-    <!-- Add Prism CSS - using default light theme -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/catbench.css') }}">
+    <!-- Add Prism CSS for code highlighting -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .nav-link {
-            text-decoration: none;
-            color: #007bff;
-            padding: 5px 10px;
-        }
-        .main-image-container {
-            text-align: center;
-            margin: 20px 0;
-        }
+        /* Page-specific overrides for pet details */
         .main-image {
             max-width: 600px;
             max-height: 600px;
             object-fit: contain;
-            margin: 10px 0;
         }
         .image-label {
             font-size: 1.2em;
             color: #333;
             margin: 10px 0;
         }
-        .similar-images {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-around;
-            gap: 20px;
-        }
         .image-item {
             text-align: center;
             width: 200px;
-        }
-        .image-item img {
-            width: 200px;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 4px;
-            transition: transform 0.2s;
-        }
-        .image-item img:hover {
-            transform: scale(1.05);
-        }
-        .image-item p {
-            margin: 5px 0;
-            color: #666;
-            font-size: 0.9em;
-            word-break: break-all;
-        }
-        .distance {
-            font-weight: bold;
-            color: #007bff;
-        }
-        .cross-species-note {
-            background-color: #e3f2fd;
-            padding: 10px;
-            border-radius: 4px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .query-monitoring {
-            margin-top: 40px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
         }
         .query-section {
             margin: 20px 0;
@@ -94,71 +36,20 @@
             margin-bottom: 10px;
             color: #333;
         }
-        .query-text {
-            position: relative;
-            margin: 10px 0;
-        }
         .query-text pre {
-            margin: 0;
-            padding: 1em;
-            border-radius: 4px;
-            /*max-height: 400px;*/
-            overflow: auto;
-            background-color: #f5f7ff !important;  /* Light blue background for code */
-        }
-        /* Custom scrollbar for code blocks */
-        .query-text pre::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        .query-text pre::-webkit-scrollbar-track {
-            background: #f0f0f0;
-        }
-        .query-text pre::-webkit-scrollbar-thumb {
-            background: #ccc;
-            border-radius: 4px;
-        }
-        .query-text pre::-webkit-scrollbar-thumb:hover {
-            background: #999;
+            background-color: #f5f7ff !important;
         }
         /* Customize Prism colors for EXPLAIN output */
         .language-pgsql .comment {
-            color: #0066cc !important;  /* Blue for arrows */
+            color: #0066cc !important;
         }
         .language-pgsql .keyword {
-            color: #d32f2f !important;  /* Red for keywords */
+            color: #d32f2f !important;
         }
         .language-pgsql .number {
-            color: #2e7d32 !important;  /* Green for numbers */
+            color: #2e7d32 !important;
         }
-
-        .purchase-analysis {
-            margin: 20px 0;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-        }
-        
-        .purchase-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-            background-color: white;
-        }
-        
-        .purchase-table th,
-        .purchase-table td {
-            padding: 8px 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .purchase-table th {
-            background-color: #f5f5f5;
-            font-weight: bold;
-        }
-        
-        /* Right-align numeric columns */
+        /* Purchase table column alignment */
         .purchase-table th:nth-child(1),
         .purchase-table th:nth-child(2),
         .purchase-table th:nth-child(3),
@@ -169,7 +60,7 @@
         }
     </style>
 </head>
-<body>
+<body class="container">
     <div class="header">
         {% if mode == 'crossspecies' %}
             <a href="{{ url_for('catlike_dogs_gallery' if animal == 'cat' else 'doglike_cats_gallery') }}" class="nav-link">
