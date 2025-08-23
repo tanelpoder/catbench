@@ -23,7 +23,7 @@ Here are a few screenshots of the similarity search and recommendation engine ap
 
 ## Installation Steps
 
-25000 cat/dog images are included in this repository. If you want to download aircraft images too, use the `wget` or `curl` command below. I have tested this on RHEL9 and Ubuntu 24.04 so far. You need to have python and pip installed in your OS for this. For installing Python packages locally with `pip`, you probably want to use a Python virtual environment (venv).
+25000 cat/dog images are included in this repository. I have tested this on RHEL9 and Ubuntu 24.04 so far. You need to have python and pip installed in your OS for this. For installing Python packages locally with `pip`, you probably want to use a Python virtual environment (venv).
 
 ### Interactive CatBench application that requires a Postgres database and loading data
 
