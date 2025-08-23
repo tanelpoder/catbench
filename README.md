@@ -28,7 +28,7 @@ The static embedding vector visualization blog entry and demo videos are here:
 
 ## Installation Steps
 
-25000 cat/dog images are included in this repository. If you want to download aircraft images too, use the `wget` command below. I have tested this on RHEL9 and Ubuntu 24.04 so far. You need to have python and pip installed in your OS for this. For installing Python packages locally with `pip`, you probably want to use a Python virtual environment (venv).
+25000 cat/dog images are included in this repository. If you want to download aircraft images too, use the `wget` or `curl` command below. I have tested this on RHEL9 and Ubuntu 24.04 so far. You need to have python and pip installed in your OS for this. For installing Python packages locally with `pip`, you probably want to use a Python virtual environment (venv).
 
 Download and set up CatBench:
 
@@ -42,7 +42,9 @@ pip install -r requirements-catvector.txt
 
 # if you want airplane images
 cd data
-wget https://www.robots.ox.ac.uk/~vgg/data/fgvc-aircraft/archives/fgvc-aircraft-2013b.tar.gz
+
+# wget https://www.robots.ox.ac.uk/~vgg/data/fgvc-aircraft/archives/fgvc-aircraft-2013b.tar.gz
+curl -O https://www.robots.ox.ac.uk/~vgg/data/fgvc-aircraft/archives/fgvc-aircraft-2013b.tar.gz
 tar xf fgvc-aircraft-2013b.tar.gz
 
 # run the app
